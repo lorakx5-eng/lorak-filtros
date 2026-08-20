@@ -7,6 +7,10 @@ let captureMode = 'foto'; // 'foto' ou 'video'
 let capturedBlob = null;
 let currentCameraMode = 'user'; // 'user' (frontal) ou 'environment' (traseira)
 
+// Dimensões Fixas Padrão (Full HD Vertical 9:16)
+const TARGET_WIDTH = 1080;
+const TARGET_HEIGHT = 1920;
+
 const webcam = document.getElementById('webcam');
 const moldura = document.getElementById('moldura');
 const previewImg = document.getElementById('preview-img');
@@ -35,19 +39,18 @@ async function loadConfig() {
   }
 }
 
-// 2. Inicia Câmera
+// 2. Inicia Câmera pedindo resolução de alta definição
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
   }
 
   try {
-    // Tenta pegar a maior resolução possível (ideal para mobile)
     const constraints = {
       video: { 
         facingMode: currentCameraMode,
-        width: { ideal: 4096 },
-        height: { ideal: 2160 }
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
       },
       audio: true
     };
@@ -55,7 +58,7 @@ async function startCamera() {
     mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcam.srcObject = mediaStream;
     
-    // Aplica espelhamento apenas na câmera frontal (user)
+    // Espelha a visualização apenas para a câmera frontal
     if (currentCameraMode === 'user') {
       webcam.classList.add('mirror');
     } else {
@@ -64,11 +67,11 @@ async function startCamera() {
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
-    alert("Não foi possível acessar a câmera. Verifique as permissões.");
+    alert("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
   }
 }
 
-// 3. Alternar Modos (Foto/Vídeo)
+// 3. Seleção de Modos e Câmera
 btnModeFoto.addEventListener('click', () => {
   captureMode = 'foto';
   btnModeFoto.classList.add('active');
@@ -81,13 +84,11 @@ btnModeVideo.addEventListener('click', () => {
   btnModeFoto.classList.remove('active');
 });
 
-// 4. Alternar Câmera (Frontal/Traseira)
 btnSwitchCamera.addEventListener('click', () => {
   currentCameraMode = currentCameraMode === 'user' ? 'environment' : 'user';
   startCamera();
 });
 
-// 5. Captura (Foto ou Gravação)
 btnCapture.addEventListener('click', () => {
   if (captureMode === 'foto') {
     takePhoto();
@@ -100,60 +101,70 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// --- Lógica de Foto ---
+// --- Lógica da Foto Fixa em 1080x1920 ---
 async function takePhoto() {
-  // Cria o canvas que fará a mesclagem
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
-  // Pega as dimensões reais da imagem da câmera
-  const videoWidth = webcam.videoWidth;
-  const videoHeight = webcam.videoHeight;
+  // FORÇADO: Resolução de saída exata em todos os dispositivos
+  canvas.width = TARGET_WIDTH;
+  canvas.height = TARGET_HEIGHT;
 
-  // CORREÇÃO CRÍTICA DO ENCAIXE: Configura o canvas para ter a mesma proporção 
-  // e tamanho da foto original (alta qualidade).
-  canvas.width = videoWidth;
-  canvas.height = videoHeight;
+  const videoWidth = webcam.videoWidth || TARGET_WIDTH;
+  const videoHeight = webcam.videoHeight || TARGET_HEIGHT;
 
-  // Remove o espelhamento para a foto final
+  // Cálculo do recorte proporcional (Cover) da Câmera
+  const canvasAspect = TARGET_WIDTH / TARGET_HEIGHT;
+  const videoAspect = videoWidth / videoHeight;
+
+  let drawWidth, drawHeight, drawX, drawY;
+
+  if (videoAspect > canvasAspect) {
+    drawHeight = TARGET_HEIGHT;
+    drawWidth = TARGET_HEIGHT * videoAspect;
+    drawX = (TARGET_WIDTH - drawWidth) / 2;
+    drawY = 0;
+  } else {
+    drawWidth = TARGET_WIDTH;
+    drawHeight = TARGET_WIDTH / videoAspect;
+    drawX = 0;
+    drawY = (TARGET_HEIGHT - drawHeight) / 2;
+  }
+
   ctx.save();
-  ctx.scale(1, 1); 
 
-  // Desenha a câmera no fundo
-  ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
-  
-  // CORREÇÃO CRÍTICA DO ENCAIXE: Desenha a moldura por cima, 
-  // forçando ela a ocupar exatamente o tamanho do canvas (sticando, se necessário), 
-  // exatamente como fazemos com 'object-fit: fill' no CSS.
-  ctx.drawImage(moldura, 0, 0, canvas.width, canvas.height);
-  
-  ctx.restore(); // Restaura o estado do canvas
+  // Tratamento de Espelhamento
+  if (currentCameraMode === 'user') {
+    ctx.translate(TARGET_WIDTH, 0);
+    ctx.scale(-1, 1);
+    drawX = -drawX - drawWidth;
+  }
 
-  // Converte canvas para arquivo
+  // 1. Desenha a imagem da Câmera centralizada e sem distorcer
+  ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
+
+  ctx.restore();
+
+  // 2. Desenha a Moldura por cima ocupando exatamente 1080x1920
+  ctx.drawImage(moldura, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+
+  // Converte para imagem
   canvas.toBlob((blob) => {
     capturedBlob = blob;
     
-    // Mostra preview
     previewImg.src = URL.createObjectURL(blob);
     previewImg.classList.remove('hidden');
     
-    // Na pré-visualização, espelha de volta se for câmera frontal para manter a experiência do usuário
-    if (currentCameraMode === 'user') {
-      previewImg.classList.add('mirror');
-    } else {
-      previewImg.classList.remove('mirror');
-    }
-    
     showPreviewControls();
-  }, 'image/png', 0.95); // Alta qualidade
+  }, 'image/png', 0.95);
 }
 
-// --- Lógica de Vídeo ---
+// --- Lógica de Gravação de Vídeo ---
 function startRecording() {
   recordedChunks = [];
   recordingStatus.classList.remove('hidden');
   btnCapture.classList.add('recording');
-  btnSwitchCamera.classList.add('hidden'); // Esconde troca de câmera durante gravação
+  btnSwitchCamera.classList.add('hidden');
 
   mediaRecorder = new MediaRecorder(mediaStream);
   
@@ -175,19 +186,17 @@ function stopRecording() {
 }
 
 async function processVideo() {
-  // Nota: Mesclar moldura em vídeo via JS no navegador é complexo e pesado.
-  // Por simplicidade e desempenho, salvamos apenas o vídeo da câmera.
   capturedBlob = new Blob(recordedChunks, { type: 'video/webm' });
   previewVideo.src = URL.createObjectURL(capturedBlob);
   previewVideo.classList.remove('hidden');
   showPreviewControls();
 }
 
-// --- Lógica Geral de Preview ---
+// --- Controle de Telas ---
 function showPreviewControls() {
   webcam.classList.add('hidden');
   moldura.classList.add('hidden');
-  btnSwitchCamera.classList.add('hidden'); // Garante que suma no preview
+  btnSwitchCamera.classList.add('hidden');
   controlsCamera.classList.add('hidden');
   controlsPreview.classList.remove('hidden');
 }
@@ -203,7 +212,7 @@ btnRefazer.addEventListener('click', () => {
   capturedBlob = null;
 });
 
-// --- Lógica de Salvar ---
+// --- Envio para o Google Drive ---
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
@@ -214,15 +223,14 @@ btnSalvar.addEventListener('click', async () => {
   const extension = captureMode === 'foto' ? 'png' : 'webm';
   const fileName = `lorak_${type}_${Date.now()}.${extension}`;
 
-  // 1. Download Local
+  // Download no dispositivo
   const downloadLink = document.createElement('a');
   downloadLink.href = URL.createObjectURL(capturedBlob);
   downloadLink.download = fileName;
   downloadLink.click();
 
-  // 2. Envio para Google Drive
   if (!GOOGLE_SCRIPT_URL) {
-    alert("Salvo no dispositivo. Configuração do Google Drive não encontrada.");
+    alert("Salvo no dispositivo!");
     finalizeSalvar();
     return;
   }
@@ -233,12 +241,12 @@ btnSalvar.addEventListener('click', async () => {
     const base64Data = reader.result;
 
     try {
-      // Envio para o Apps Script
-      // Nota: Usamos 'no-cors' para o navegador aceitar, mas isso impede de ler a resposta.
       await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', 
-        headers: { 'Content-Type': 'application/json' },
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
         body: JSON.stringify({
           base64: base64Data,
           filename: fileName,
@@ -246,11 +254,11 @@ btnSalvar.addEventListener('click', async () => {
         })
       });
       
-      alert("Sucesso! Cópia salva no dispositivo e na nuvem do aniversário.");
+      alert("Sucesso! Cópia salva no dispositivo e enviada para o Google Drive.");
 
     } catch (err) {
-      console.error("Erro no envio para Drive:", err);
-      alert("Salvo no dispositivo, mas ocorreu um erro no envio para a nuvem. Verifique sua conexão.");
+      console.error("Erro ao enviar para o Drive:", err);
+      alert("Salvo no dispositivo, mas ocorreu um erro no envio para a nuvem.");
     } finally {
       finalizeSalvar();
     }
@@ -260,8 +268,8 @@ btnSalvar.addEventListener('click', async () => {
 function finalizeSalvar() {
   btnSalvar.innerText = "Salvar";
   btnSalvar.disabled = false;
-  btnRefazer.click(); // Volta para a câmera
+  btnRefazer.click();
 }
 
-// Inicialização
+// Inicializa
 loadConfig().then(startCamera);
