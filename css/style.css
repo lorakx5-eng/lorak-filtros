@@ -44,12 +44,17 @@ html, body {
   background-color: #000000;
 }
 
-/* Elemento de Vídeo da Câmera (Preenchimento sem Espelhamento) */
+/* Elemento de Vídeo da Câmera */
 #webcam {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: none !important; /* Desativa espelhamento */
+  transform: none;
+}
+
+/* Espelhamento visual da prévia ao vivo apenas para câmera frontal */
+#webcam.mirror-front {
+  transform: scaleX(-1);
 }
 
 /* Moldura sobreposta */
