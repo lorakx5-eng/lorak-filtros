@@ -30,11 +30,9 @@ const btnCapture = document.getElementById('btn-capture');
 const btnRefazer = document.getElementById('btn-refazer');
 const btnSalvar = document.getElementById('btn-salvar');
 
-// Elemento auxiliar para renderização segura da moldura no Canvas
 const frameImg = new Image();
 let frameLoaded = false;
 
-// 1. Carrega Configurações e Converte Moldura em Blob Seguro (Previne Erros de CORS/Canvas)
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
@@ -55,11 +53,10 @@ async function loadConfig() {
     frameImg.src = objectURL;
 
   } catch (e) {
-    console.error("Erro ao carregar evento JSON/Moldura:", e);
+    console.error("Erro ao carregar evento JSON ou imagem da moldura:", e);
   }
 }
 
-// 2. Inicia Câmera
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -77,15 +74,10 @@ async function startCamera() {
     
     mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcam.srcObject = mediaStream;
-    
     await webcam.play();
-
-    // Aplica espelhamento visual no elemento de preview conforme o modo
-    if (currentCameraMode === 'user') {
-      webcam.classList.add('mirror-front');
-    } else {
-      webcam.classList.remove('mirror-front');
-    }
+    
+    // Sem espelhamento na tela
+    webcam.style.transform = "none";
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
@@ -93,7 +85,6 @@ async function startCamera() {
   }
 }
 
-// Controles de Modo
 btnModeFoto.addEventListener('click', () => {
   captureMode = 'foto';
   btnModeFoto.classList.add('active');
@@ -123,7 +114,7 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Desenha Câmera + Moldura no Canvas (Com Inversão Inteligente para Não Espelhar a Frontal)
+// Renderização direta sem espelhamento
 function drawFrameToContext(ctx, width, height) {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
@@ -150,20 +141,13 @@ function drawFrameToContext(ctx, width, height) {
 
   ctx.save();
 
-  // Se for Câmera Frontal, des-espelhamos a imagem para a foto/vídeo saírem corretos
-  if (currentCameraMode === 'user') {
-    ctx.translate(width, 0);
-    ctx.scale(-1, 1);
-    drawX = width - drawX - drawWidth;
-  }
-
-  // 1. Desenha o vídeo da Câmera
+  // Câmera gravada de forma direta/não espelhada
   if (webcam.readyState >= 2) {
     ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   }
   ctx.restore();
 
-  // 2. Desenha a Moldura por cima (sempre normal, sem inverter)
+  // Moldura sobreposta
   if (frameLoaded) {
     ctx.drawImage(frameImg, 0, 0, width, height);
   } else if (moldura.complete && moldura.naturalWidth > 0) {
@@ -171,7 +155,6 @@ function drawFrameToContext(ctx, width, height) {
   }
 }
 
-// Captura de Foto
 function takePhoto() {
   const canvas = document.createElement('canvas');
   canvas.width = TARGET_WIDTH;
@@ -182,7 +165,7 @@ function takePhoto() {
 
   canvas.toBlob((blob) => {
     if (!blob) {
-      alert("Erro ao capturar a foto. Tente novamente.");
+      alert("Erro ao gerar foto. Tente novamente.");
       return;
     }
     capturedBlob = blob;
@@ -193,7 +176,6 @@ function takePhoto() {
   }, 'image/png', 0.95);
 }
 
-// Gravação de Vídeo
 function startRecording() {
   recordedChunks = [];
   recordingStatus.classList.remove('hidden');
@@ -290,7 +272,6 @@ btnRefazer.addEventListener('click', () => {
   capturedBlob = null;
 });
 
-// Salvamento e Envio ao Google Drive
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
@@ -302,13 +283,11 @@ btnSalvar.addEventListener('click', async () => {
   const extension = isFoto ? 'png' : (capturedBlob.type.includes('mp4') ? 'mp4' : 'webm');
   const fileName = `lorak_${type}_${Date.now()}.${extension}`;
 
-  // 1. Download Local no Dispositivo
   const downloadLink = document.createElement('a');
   downloadLink.href = URL.createObjectURL(capturedBlob);
   downloadLink.download = fileName;
   downloadLink.click();
 
-  // 2. Envio para o Google Drive
   if (!GOOGLE_SCRIPT_URL) {
     alert("Salvo no dispositivo!");
     finalizeSalvar();
