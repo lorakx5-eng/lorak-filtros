@@ -2,36 +2,38 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Câmera com Moldura</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Cabine de Fotos & Vídeos</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
   <div class="app-container">
-    
-    <!-- Botão de Inverter Câmera -->
-    <button id="btn-switch-camera" class="btn-icon-stories" aria-label="Trocar Câmera">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 1.94.693 3.717 1.848 5.105L4 17h5v-5l-1.842 1.842A5.968 5.968 0 0 1 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.657-.672 3.157-1.757 4.243L17.657 15.657A7.962 7.962 0 0 0 20 10z"/>
-        <path d="M4 14c0 4.418 3.582 8 8 8s8-3.582 8-8c0-1.94-.693-3.717-1.848-5.105L20 7h-5v5l1.842-1.842A5.968 5.968 0 0 1 18 14c0 3.314-2.686 6-6 6s-6-2.686-6-6c0-1.657.672-3.157 1.757-4.243L6.343 8.343A7.962 7.962 0 0 0 4 14z"/>
-      </svg>
-    </button>
 
     <!-- Indicador de Gravação REC -->
     <div id="recording-status" class="hidden">
       <span class="rec-dot"></span> REC
     </div>
 
-    <!-- Área de Visualização da Câmera / Preview -->
+    <!-- Botão Trocar Câmera (Estilo Instagram Stories) -->
+    <button id="btn-switch-camera" class="btn-icon-stories" aria-label="Trocar Câmera">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 10c0-4.418-3.582-8-8-8S4 5.582 4 10c0 3.328 2.03 6.182 4.9 7.37L7 20h5l1.5-3"/>
+        <path d="M4 14c0 4.418 3.582 8 8 8s8-3.582 8-8c0-3.328-2.03-6.182-4.9-7.37L17 4h-5l-1.5 3"/>
+      </svg>
+    </button>
+
+    <!-- Área de Exibição do Vídeo / Moldura -->
     <div class="camera-wrapper">
       <video id="webcam" autoplay playsinline muted></video>
-      <img id="moldura" class="moldura-overlay" alt="Moldura" />
+      <img id="moldura" class="moldura-overlay" alt="Moldura" src="" />
       
+      <!-- Previews -->
       <img id="preview-img" class="hidden" alt="Foto Capturada" />
-      <video id="preview-video" class="hidden" controls playsinline></video>
+      <video id="preview-video" class="hidden" playsinline controls loop></video>
     </div>
 
-    <!-- Controles de Captura (Câmera Ativa) -->
+    <!-- Controles da Câmera -->
     <div id="controls-camera" class="controls">
       <div class="shutter-container">
         <button id="btn-capture" class="btn-shutter" aria-label="Capturar"></button>
@@ -43,7 +45,7 @@
       </div>
     </div>
 
-    <!-- Controles da Preview (Após Tirar Foto / Gravar Vídeo) -->
+    <!-- Controles da Preview -->
     <div id="controls-preview" class="controls hidden">
       <button id="btn-refazer" class="btn-secondary">Refazer</button>
       <button id="btn-salvar" class="btn-primary">Salvar</button>
