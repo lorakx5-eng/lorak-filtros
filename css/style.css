@@ -46,9 +46,9 @@ html, body {
   z-index: 1;
 }
 
-/* Espelhamento apenas para a câmera frontal ao vivo */
+/* Desativa o espelhamento na visualização ao vivo da webcam */
 #webcam.mirror {
-  transform: scaleX(-1);
+  transform: none !important;
 }
 
 /* Moldura por cima de TUDO na visualização (Z-Index alto) */
