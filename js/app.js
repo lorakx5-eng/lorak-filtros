@@ -3,9 +3,9 @@ let currentConfig = null;
 let mediaStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
-let captureMode = 'foto'; // 'foto' ou 'video'
+let captureMode = 'foto';
 let capturedBlob = null;
-let currentCameraMode = 'user'; // 'user' ou 'environment'
+let currentCameraMode = 'user';
 
 const TARGET_WIDTH = 1080;
 const TARGET_HEIGHT = 1920;
@@ -30,11 +30,8 @@ const btnCapture = document.getElementById('btn-capture');
 const btnRefazer = document.getElementById('btn-refazer');
 const btnSalvar = document.getElementById('btn-salvar');
 
-// Objeto de imagem dedicado para o Canvas (Evita Tela Preta)
 const frameImg = new Image();
-frameImg.crossOrigin = "anonymous";
 
-// 1. Carrega Configuração do Evento e Pré-carrega a Imagem da Moldura
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
@@ -42,15 +39,16 @@ async function loadConfig() {
     
     const frameUrl = currentConfig.frame || "assets/molduras/lianamaria.png";
     moldura.src = frameUrl;
-    frameImg.src = frameUrl; // Carrega em memória para o Canvas
     
+    frameImg.crossOrigin = "anonymous";
+    frameImg.src = frameUrl;
+
     GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl;
   } catch (e) {
     console.error("Erro ao carregar evento JSON:", e);
   }
 }
 
-// 2. Inicia Câmera
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -82,7 +80,6 @@ async function startCamera() {
   }
 }
 
-// Alternância de Modos
 btnModeFoto.addEventListener('click', () => {
   captureMode = 'foto';
   btnModeFoto.classList.add('active');
@@ -112,9 +109,8 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// --- Desenho das camadas no Canvas ---
+// Desenho no Canvas (Sempre mescla Câmera + Moldura)
 function drawFrameToContext(ctx, width, height) {
-  // Limpa o canvas
   ctx.clearRect(0, 0, width, height);
 
   const videoWidth = webcam.videoWidth || width;
@@ -139,18 +135,17 @@ function drawFrameToContext(ctx, width, height) {
 
   ctx.save();
 
-  // Espelhamento na câmera frontal
   if (currentCameraMode === 'user') {
     ctx.translate(width, 0);
     ctx.scale(-1, 1);
     drawX = -drawX - drawWidth;
   }
 
-  // 1. Desenha a Câmera
+  // 1. Câmera
   ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   ctx.restore();
 
-  // 2. Desenha a Moldura
+  // 2. Moldura por cima gravada no arquivo final
   if (frameImg.complete && frameImg.naturalWidth !== 0) {
     ctx.drawImage(frameImg, 0, 0, width, height);
   } else if (moldura.complete && moldura.naturalWidth !== 0) {
@@ -158,14 +153,13 @@ function drawFrameToContext(ctx, width, height) {
   }
 }
 
-// --- Captura de Foto (Corrigida Tela Preta) ---
+// Foto
 function takePhoto() {
   const canvas = document.createElement('canvas');
   canvas.width = TARGET_WIDTH;
   canvas.height = TARGET_HEIGHT;
   const ctx = canvas.getContext('2d');
 
-  // Desenha Câmera + Moldura
   drawFrameToContext(ctx, TARGET_WIDTH, TARGET_HEIGHT);
 
   canvas.toBlob((blob) => {
@@ -176,26 +170,23 @@ function takePhoto() {
   }, 'image/png', 0.95);
 }
 
-// --- Gravação de Vídeo Fluida (Com Moldura) ---
+// Gravação de Vídeo
 function startRecording() {
   recordedChunks = [];
   recordingStatus.classList.remove('hidden');
   btnCapture.classList.add('recording');
   btnSwitchCamera.classList.add('hidden');
 
-  // Resolução leve para evitar travamento em processadores móveis (540x960)
   recordCanvas = document.createElement('canvas');
   recordCanvas.width = 540;  
   recordCanvas.height = 960;
   recordCtx = recordCanvas.getContext('2d');
 
-  // Loop leve de 24 FPS para gravação sem travamentos
   let lastFrameTime = 0;
   const fpsInterval = 1000 / 24;
 
   function renderLoop(timestamp) {
     animFrameId = requestAnimationFrame(renderLoop);
-
     const elapsed = timestamp - lastFrameTime;
     if (elapsed > fpsInterval) {
       lastFrameTime = timestamp - (elapsed % fpsInterval);
@@ -205,14 +196,12 @@ function startRecording() {
   
   animFrameId = requestAnimationFrame(renderLoop);
 
-  // Captura o Stream do Canvas mesclado com Áudio do Microfone
   const canvasStream = recordCanvas.captureStream(24);
   const audioTracks = mediaStream.getAudioTracks();
   if (audioTracks.length > 0) {
     canvasStream.addTrack(audioTracks[0]);
   }
 
-  // Codec otimizado para navegadores mobile
   let options = { mimeType: 'video/webm;codecs=vp8' };
   if (!MediaRecorder.isTypeSupported(options.mimeType)) {
     options = { mimeType: 'video/mp4' };
@@ -257,10 +246,9 @@ async function processVideo() {
   showPreviewControls();
 }
 
-// --- Telas e Interface ---
 function showPreviewControls() {
+  // Apenas a câmera ao vivo é escondida; a moldura continua visível no preview
   webcam.classList.add('hidden');
-  moldura.classList.add('hidden');
   btnSwitchCamera.classList.add('hidden');
   controlsCamera.classList.add('hidden');
   controlsPreview.classList.remove('hidden');
@@ -269,15 +257,16 @@ function showPreviewControls() {
 btnRefazer.addEventListener('click', () => {
   previewImg.classList.add('hidden');
   previewVideo.classList.add('hidden');
+  
   webcam.classList.remove('hidden');
-  moldura.classList.remove('hidden');
   btnSwitchCamera.classList.remove('hidden');
+  
   controlsPreview.classList.add('hidden');
   controlsCamera.classList.remove('hidden');
   capturedBlob = null;
 });
 
-// --- Salvamento ---
+// Download e envio para o Google Drive
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
@@ -336,5 +325,4 @@ function finalizeSalvar() {
   btnRefazer.click();
 }
 
-// Inicializa
 loadConfig().then(startCamera);
