@@ -1,209 +1,260 @@
+/* Reset Básico e Prevenção de Seleção */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 html, body {
   width: 100%;
   height: 100%;
-  background-color: #000;
-  color: #fff;
   overflow: hidden;
-  position: fixed;
+  background-color: #000000;
+  color: #ffffff;
 }
 
+/* Container Principal do App */
 .app-container {
-  width: 100%;
-  height: 100%;
-  max-width: 480px;
-  margin: 0 auto;
   position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
 }
 
-/* Container da Câmera e Previews em Tela Cheia */
+/* Área de Câmera e Moldura */
 .camera-wrapper {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  background-color: #000;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #000000;
 }
 
-#webcam, #preview-img, #preview-video {
-  position: absolute;
-  top: 0;
-  left: 0;
+/* Elemento de Vídeo da Câmera (Preenchimento sem Espelhamento) */
+#webcam {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: 1;
+  transform: none !important; /* Desativa espelhamento */
 }
 
-/* Desativa o espelhamento na visualização ao vivo da webcam */
-#webcam.mirror {
-  transform: none !important;
-}
-
-/* Moldura por cima de TUDO na visualização (Z-Index alto) */
+/* Moldura sobreposta */
 .moldura-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
-  z-index: 20;
   object-fit: fill;
+  pointer-events: none;
+  z-index: 2;
 }
 
-/* Botão de Troca de Câmera */
+/* Previews de Foto e Vídeo Gravados */
+#preview-img, #preview-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 3;
+  background-color: #000000;
+}
+
+/* Botão de Trocar de Câmera estilo Stories */
 .btn-icon-stories {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  background: rgba(0, 0, 0, 0.35);
-  border: none;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  width: 42px;
-  height: 42px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 10;
   cursor: pointer;
-  z-index: 25;
-  backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.btn-icon-stories:active {
+  transform: scale(0.9);
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .btn-icon-stories svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
-/* Painel de Controles */
+/* Status de Gravação REC */
+#recording-status {
+  position: absolute;
+  top: 24px;
+  left: 20px;
+  z-index: 10;
+  background: rgba(220, 38, 38, 0.85);
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  animation: pulse-rec 1s infinite alternate;
+}
+
+@keyframes pulse-rec {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.3; transform: scale(0.8); }
+}
+
+/* Controles Flutuantes Inferiores */
 .controls {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 20px 20px calc(env(safe-area-inset-bottom, 20px));
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
+  padding: 20px 24px calc(20px + env(safe-area-inset-bottom, 0px)) 24px;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  z-index: 30;
+  gap: 16px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
+/* Botão do Obturador (Shutter) */
 .shutter-container {
   display: flex;
-  align-items: center;
   justify-content: center;
-  width: 100%;
+  align-items: center;
 }
 
 .btn-shutter {
-  width: 70px;
-  height: 70px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
-  border: 4px solid #fff;
-  background-color: transparent;
+  border: 4px solid #ffffff;
+  background-color: rgba(255, 255, 255, 0.3);
+  outline: none;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  transition: transform 0.15s ease, background-color 0.2s ease;
+  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-shutter:active {
-  transform: scale(0.9);
+  transform: scale(0.92);
 }
 
 .btn-shutter.recording {
-  background-color: #ff3b30;
-  border-color: #ff3b30;
+  background-color: #dc2626;
+  border-color: #ffffff;
   border-radius: 12px;
+  transform: scale(0.75);
 }
 
+/* Seleção de Modo (FOTO / VÍDEO) */
 .mode-selector {
   display: flex;
-  gap: 24px;
+  gap: 20px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 6px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .mode-selector button {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
   font-size: 13px;
+  font-weight: 700;
   letter-spacing: 1px;
   cursor: pointer;
+  transition: color 0.2s ease;
   padding: 4px 8px;
 }
 
 .mode-selector button.active {
-  color: #fff;
-  border-bottom: 2px solid #fff;
+  color: #ffffff;
+  border-bottom: 2px solid #ffffff;
 }
 
-#recording-status {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  color: #fff;
-  font-weight: 600;
-  z-index: 25;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(4px);
-}
-
-.rec-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #ff3b30;
-  border-radius: 50%;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.3; }
-  100% { opacity: 1; }
-}
-
-.hidden {
-  display: none !important;
+/* Botões de Ação na Preview (Refazer / Salvar) */
+#controls-preview {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
 }
 
 .btn-primary, .btn-secondary {
-  padding: 14px 28px;
-  border-radius: 28px;
+  flex: 1;
+  height: 52px;
+  border-radius: 26px;
+  font-size: 16px;
+  font-weight: 600;
   border: none;
-  font-weight: 700;
   cursor: pointer;
-  width: 85%;
-  max-width: 300px;
-  font-size: 15px;
-  letter-spacing: 0.5px;
+  transition: transform 0.15s ease, opacity 0.2s ease;
 }
 
 .btn-primary {
   background-color: #007aff;
-  color: #fff;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
 }
 
 .btn-secondary {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.btn-primary:active, .btn-secondary:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+.btn-primary:disabled {
+  background-color: #555555;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Classe utilitária para ocultar elementos */
+.hidden {
+  display: none !important;
 }
