@@ -12,7 +12,7 @@ html, body {
   background-color: #000;
   color: #fff;
   overflow: hidden;
-  position: fixed; /* Evita rolagem elástica no iOS/Android */
+  position: fixed;
 }
 
 .app-container {
@@ -25,7 +25,7 @@ html, body {
   flex-direction: column;
 }
 
-/* Área da Câmera: Encosta no topo e ocupa a tela inteira */
+/* Container da Câmera e Previews em Tela Cheia */
 .camera-wrapper {
   position: absolute;
   top: 0;
@@ -43,13 +43,15 @@ html, body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  z-index: 1;
 }
 
-/* Espelhamento apenas para a câmera frontal */
+/* Espelhamento apenas para a câmera frontal ao vivo */
 #webcam.mirror {
   transform: scaleX(-1);
 }
 
+/* Moldura por cima de TUDO na visualização (Z-Index alto) */
 .moldura-overlay {
   position: absolute;
   top: 0;
@@ -57,11 +59,11 @@ html, body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 10;
-  object-fit: fill; /* Preenche de ponta a ponta sem sobras */
+  z-index: 20;
+  object-fit: fill;
 }
 
-/* Botão Flutuante de Virar Câmera (Estilo Stories) */
+/* Botão de Troca de Câmera */
 .btn-icon-stories {
   position: absolute;
   top: 16px;
@@ -84,14 +86,14 @@ html, body {
   height: 22px;
 }
 
-/* Painel de Controles Sobreposto na Base (Overlay) */
+/* Painel de Controles */
 .controls {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 20px 20px (env(safe-area-inset-bottom, 20px)); /* Adaptação para iPhone/Android modernos */
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
+  padding: 20px 20px calc(env(safe-area-inset-bottom, 20px));
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -141,7 +143,6 @@ html, body {
   letter-spacing: 1px;
   cursor: pointer;
   padding: 4px 8px;
-  transition: color 0.2s;
 }
 
 .mode-selector button.active {
