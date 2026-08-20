@@ -7,33 +7,42 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- Cabeçalho removido conforme solicitado -->
 
   <main class="app-container">
     <div class="camera-wrapper">
-      <!-- O elemento video exibe a câmera -->
-      <video id="webcam" autoplay playsinline muted></video>
-      <!-- A moldura fica por cima -->
-      <img id="moldura" src="" alt="Moldura" class="moldura-overlay">
-      <!-- Elementos de pré-visualização (escondidos inicialmente) -->
-      <img id="preview-img" class="hidden">
-      <video id="preview-video" class="hidden" controls playsinline></video>
       
-      <!-- Indicador de gravação -->
-      <div id="recording-status" class="hidden">
-        <span class="rec-dot"></span> GRAVANDO
+      <!-- Box de Proporção Fixa (9:16) -->
+      <div class="aspect-ratio-box">
+        <!-- O vídeo exibe a câmera -->
+        <video id="webcam" autoplay playsinline muted></video>
+        <!-- A moldura fica por cima e cobre todo o box -->
+        <img id="moldura" src="" alt="Moldura" class="moldura-overlay">
+        
+        <!-- Botão de alternar câmera (estilo Stories, no canto) -->
+        <button id="btn-switch-camera" class="btn-icon-stories">
+          <!-- Ícone SVG de rotação -->
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="white" d="M16.89 15.5L18.31 16.89C19.21 15.73 19.75 14.28 19.75 12.7C19.75 9.87 17.76 7.5 15 6.82V9L11 5L15 1V3.18C18.89 3.91 21.75 7.47 21.75 11.7C21.75 13.92 21 15.97 19.75 17.58L16.89 15.5M7.11 8.5L5.69 7.11C4.79 8.27 4.25 9.72 4.25 11.3C4.25 14.13 6.24 16.5 9 17.18V15L13 19L9 23V20.82C5.11 20.09 2.25 16.53 2.25 12.3C2.25 10.08 3 8.03 4.25 6.42L7.11 8.5Z"></path>
+          </svg>
+        </button>
+
+        <!-- Preview da Foto/Vídeo capturado -->
+        <img id="preview-img" class="hidden">
+        <video id="preview-video" class="hidden" controls playsinline></video>
+        
+        <!-- Indicador de gravação -->
+        <div id="recording-status" class="hidden">
+          <span class="rec-dot"></span> GRAVANDO
+        </div>
       </div>
+
     </div>
 
-    <!-- Controles principais da câmera -->
+    <!-- Controles de captura -->
     <div id="controls-camera" class="controls">
-      <div class="top-row">
-        <div class="mode-selector">
-          <button id="btn-mode-foto" class="active">FOTO</button>
-          <button id="btn-mode-video">VÍDEO</button>
-        </div>
-        <!-- Botão para mudar de câmera (frontal/traseira) -->
-        <button id="btn-switch-camera" class="btn-icon">🔄</button>
+      <div class="mode-selector">
+        <button id="btn-mode-foto" class="active">FOTO</button>
+        <button id="btn-mode-video">VÍDEO</button>
       </div>
       <button id="btn-capture" class="btn-shutter"></button>
     </div>
