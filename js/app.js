@@ -72,11 +72,8 @@ async function startCamera() {
     webcam.srcObject = mediaStream;
     await webcam.play();
     
-    if (currentCameraMode === 'user') {
-      webcam.classList.add('mirror');
-    } else {
-      webcam.classList.remove('mirror');
-    }
+    // Remove classe mirror para garantir que não espelhe
+    webcam.classList.remove('mirror');
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
@@ -114,7 +111,7 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Desenha Câmera + Moldura no Canvas
+// Desenha Câmera + Moldura no Canvas (Sem Espelhamento)
 function drawFrameToContext(ctx, width, height) {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
@@ -141,14 +138,7 @@ function drawFrameToContext(ctx, width, height) {
 
   ctx.save();
 
-  // Espelhamento para câmera frontal
-  if (currentCameraMode === 'user') {
-    ctx.translate(width, 0);
-    ctx.scale(-1, 1);
-    drawX = -drawX - drawWidth;
-  }
-
-  // 1. Desenha o vídeo da Câmera
+  // 1. Desenha o vídeo da Câmera (Sem inversão/espelhamento)
   if (webcam.readyState >= 2) {
     ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   }
@@ -172,7 +162,6 @@ function takePhoto() {
   drawFrameToContext(ctx, TARGET_WIDTH, TARGET_HEIGHT);
 
   try {
-    // Tenta gerar a imagem via DataURL primeiro para evitar bloqueios de Blob zerado
     const dataUrl = canvas.toDataURL('image/png', 0.95);
     
     // Converte DataURL para Blob para o upload e download
