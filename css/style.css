@@ -1,249 +1,70 @@
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-html, body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background-color: #000000;
-  color: #ffffff;
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.app-container {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  height: -webkit-fill-available;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  overflow: hidden;
+.camera-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
-.camera-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #000000;
+video#preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-/* Sem espelhamento na tela */
-#webcam {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: none !important;
-  -webkit-transform: none !important;
-}
-
-.moldura-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  pointer-events: none;
-  z-index: 2;
-}
-
-#preview-img, #preview-video {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 3;
-  background-color: #000000;
-}
-
-.btn-icon-stories {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10;
-  cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.btn-icon-stories:active {
-  transform: scale(0.9);
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.btn-icon-stories svg {
-  width: 24px;
-  height: 24px;
-}
-
-#recording-status {
-  position: absolute;
-  top: 24px;
-  left: 20px;
-  z-index: 10;
-  background: rgba(220, 38, 38, 0.85);
-  color: #ffffff;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-
-.rec-dot {
-  width: 10px;
-  height: 10px;
-  background-color: #ffffff;
-  border-radius: 50%;
-  animation: pulse-rec 1s infinite alternate;
-}
-
-@keyframes pulse-rec {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0.3; transform: scale(0.8); }
+/* Espelhamento visual apenas na câmera frontal */
+video#preview.mirror {
+    transform: scaleX(-1);
+    -webkit-transform: scaleX(-1);
 }
 
 .controls {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  padding: 20px 24px calc(20px + env(safe-area-inset-bottom, 0px)) 24px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    z-index: 10;
+    padding: 0 10px;
 }
 
-.shutter-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+button {
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #000;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
 }
 
-.btn-shutter {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  border: 4px solid #ffffff;
-  background-color: rgba(255, 255, 255, 0.3);
-  outline: none;
-  cursor: pointer;
-  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+button:active {
+    background-color: rgba(255, 255, 255, 1);
+    transform: scale(0.96);
 }
 
-.btn-shutter:active {
-  transform: scale(0.92);
-}
-
-.btn-shutter.recording {
-  background-color: #dc2626;
-  border-color: #ffffff;
-  border-radius: 12px;
-  transform: scale(0.75);
-}
-
-.mode-selector {
-  display: flex;
-  gap: 20px;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 6px 16px;
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.mode-selector button {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  padding: 4px 8px;
-}
-
-.mode-selector button.active {
-  color: #ffffff;
-  border-bottom: 2px solid #ffffff;
-}
-
-#controls-preview {
-  flex-direction: row;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
-}
-
-.btn-primary, .btn-secondary {
-  flex: 1;
-  height: 52px;
-  border-radius: 26px;
-  font-size: 16px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.2s ease;
-}
-
-.btn-primary {
-  background-color: #007aff;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
-}
-
-.btn-secondary {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.btn-primary:active, .btn-secondary:active {
-  transform: scale(0.96);
-  opacity: 0.9;
-}
-
-.btn-primary:disabled {
-  background-color: #555555;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.hidden {
-  display: none !important;
+button.recording {
+    background-color: #ff3b30;
+    color: #fff;
 }
