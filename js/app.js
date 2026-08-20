@@ -30,8 +30,7 @@ const btnCapture = document.getElementById('btn-capture');
 const btnRefazer = document.getElementById('btn-refazer');
 const btnSalvar = document.getElementById('btn-salvar');
 
-const frameImg = new Image();
-
+// Carrega Configuração do Evento
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
@@ -39,16 +38,13 @@ async function loadConfig() {
     
     const frameUrl = currentConfig.frame || "assets/molduras/lianamaria.png";
     moldura.src = frameUrl;
-    
-    frameImg.crossOrigin = "anonymous";
-    frameImg.src = frameUrl;
-
     GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl;
   } catch (e) {
     console.error("Erro ao carregar evento JSON:", e);
   }
 }
 
+// Inicia Câmera
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -66,6 +62,8 @@ async function startCamera() {
     
     mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcam.srcObject = mediaStream;
+    
+    // Garante a execução da câmera no celular
     await webcam.play();
     
     if (currentCameraMode === 'user') {
@@ -109,12 +107,13 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Desenho no Canvas (Sempre mescla Câmera + Moldura)
+// Função Central de Renderização (Desenha Câmera + Moldura no Canvas)
 function drawFrameToContext(ctx, width, height) {
-  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, width, height);
 
-  const videoWidth = webcam.videoWidth || width;
-  const videoHeight = webcam.videoHeight || height;
+  const videoWidth = webcam.videoWidth || 720;
+  const videoHeight = webcam.videoHeight || 1280;
 
   const canvasAspect = width / height;
   const videoAspect = videoWidth / videoHeight;
@@ -135,25 +134,26 @@ function drawFrameToContext(ctx, width, height) {
 
   ctx.save();
 
+  // Tratamento de Espelhamento para Câmera Frontal
   if (currentCameraMode === 'user') {
     ctx.translate(width, 0);
     ctx.scale(-1, 1);
     drawX = -drawX - drawWidth;
   }
 
-  // 1. Câmera
-  ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
+  // 1. Desenha a Câmera Ativa
+  if (webcam.readyState >= 2) { // 2 = HAVE_CURRENT_DATA
+    ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
+  }
   ctx.restore();
 
-  // 2. Moldura por cima gravada no arquivo final
-  if (frameImg.complete && frameImg.naturalWidth !== 0) {
-    ctx.drawImage(frameImg, 0, 0, width, height);
-  } else if (moldura.complete && moldura.naturalWidth !== 0) {
+  // 2. Desenha a Moldura por cima
+  if (moldura.complete && moldura.naturalWidth > 0) {
     ctx.drawImage(moldura, 0, 0, width, height);
   }
 }
 
-// Foto
+// Captura da Foto
 function takePhoto() {
   const canvas = document.createElement('canvas');
   canvas.width = TARGET_WIDTH;
@@ -165,6 +165,8 @@ function takePhoto() {
   canvas.toBlob((blob) => {
     capturedBlob = blob;
     previewImg.src = URL.createObjectURL(blob);
+    
+    // Oculta vídeo e exibe foto final no preview
     previewImg.classList.remove('hidden');
     showPreviewControls();
   }, 'image/png', 0.95);
@@ -183,7 +185,7 @@ function startRecording() {
   recordCtx = recordCanvas.getContext('2d');
 
   let lastFrameTime = 0;
-  const fpsInterval = 1000 / 24;
+  const fpsInterval = 1000 / 25;
 
   function renderLoop(timestamp) {
     animFrameId = requestAnimationFrame(renderLoop);
@@ -196,7 +198,7 @@ function startRecording() {
   
   animFrameId = requestAnimationFrame(renderLoop);
 
-  const canvasStream = recordCanvas.captureStream(24);
+  const canvasStream = recordCanvas.captureStream(25);
   const audioTracks = mediaStream.getAudioTracks();
   if (audioTracks.length > 0) {
     canvasStream.addTrack(audioTracks[0]);
@@ -247,8 +249,8 @@ async function processVideo() {
 }
 
 function showPreviewControls() {
-  // Apenas a câmera ao vivo é escondida; a moldura continua visível no preview
   webcam.classList.add('hidden');
+  moldura.classList.add('hidden');
   btnSwitchCamera.classList.add('hidden');
   controlsCamera.classList.add('hidden');
   controlsPreview.classList.remove('hidden');
@@ -259,6 +261,7 @@ btnRefazer.addEventListener('click', () => {
   previewVideo.classList.add('hidden');
   
   webcam.classList.remove('hidden');
+  moldura.classList.remove('hidden');
   btnSwitchCamera.classList.remove('hidden');
   
   controlsPreview.classList.add('hidden');
@@ -266,7 +269,7 @@ btnRefazer.addEventListener('click', () => {
   capturedBlob = null;
 });
 
-// Download e envio para o Google Drive
+// Envio para o Google Drive e Download Local
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
