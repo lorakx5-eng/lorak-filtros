@@ -12,13 +12,13 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  overflow: hidden; /* Evita rolagem */
+  overflow: hidden;
 }
 
 .app-container {
   width: 100%;
   height: 100vh;
-  max-width: 480px; /* Largura máxima para desktop */
+  max-width: 480px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -27,7 +27,7 @@ body {
 .camera-wrapper {
   position: relative;
   width: 100%;
-  flex-grow: 1; /* Ocupa todo o espaço vertical disponível */
+  flex-grow: 1;
   background-color: #111;
   display: flex;
   justify-content: center;
@@ -35,18 +35,18 @@ body {
   overflow: hidden;
 }
 
-/* --- Box de Proporção Fixa --- */
+/* Container que simula a proporção 9:16 (1080x1920) na tela do celular */
 .aspect-ratio-box {
   position: relative;
   width: 100%;
-  /* Define a proporção 9:16 (vertical). 
-     Para proporção quadrada (1:1), use 100%.
-     A altura será automática com base na largura. */
-  padding-top: 177.77%; /* (16 / 9) * 100 = 177.77% */
+  height: 100%;
+  max-height: 100vh;
+  aspect-ratio: 9 / 16;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: #000;
 }
 
 #webcam, #preview-img, #preview-video {
@@ -55,12 +55,11 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  /* Preenche o box sem cortar, mas pode esticar a imagem levemente */
-  object-fit: cover; 
+  object-fit: cover; /* Câmera preenche sem distorcer */
 }
 
-/* Espelha o vídeo apenas se a classe .mirror estiver ativa (câmera frontal) */
-#webcam.mirror, #preview-img.mirror {
+/* Espelhamento apenas da visualização da câmera frontal */
+#webcam.mirror {
   transform: scaleX(-1);
 }
 
@@ -70,14 +69,12 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Deixa cliques passarem para o vídeo */
+  pointer-events: none;
   z-index: 10;
-  /* CORREÇÃO DO ENCAIXE: 'fill' garante que a moldura cubra 
-     exatamente o box da câmera, sem cortes. */
-  object-fit: fill; 
+  object-fit: fill; /* Moldura se ajusta perfeitamente ao box 9:16 */
 }
 
-/* --- Botão de Virar Câmera (Stories) --- */
+/* Botão de Virar Câmera (Estilo Stories) */
 .btn-icon-stories {
   position: absolute;
   top: 20px;
@@ -92,28 +89,28 @@ body {
   align-items: center;
   cursor: pointer;
   z-index: 20;
-  backdrop-filter: blur(2px); /* Efeito de vidro */
+  backdrop-filter: blur(4px);
   transition: background 0.2s;
 }
 
 .btn-icon-stories:active {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .btn-icon-stories svg {
   fill: white;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 }
 
-/* --- Restante dos Controles --- */
+/* Controles e Botões */
 .controls {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 30px;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  padding: 25px 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -143,10 +140,10 @@ body {
 }
 
 .btn-shutter {
-  width: 76px;
-  height: 76px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  border: 6px solid #fff;
+  border: 5px solid #fff;
   background-color: transparent;
   cursor: pointer;
   transition: all 0.2s;
@@ -167,7 +164,7 @@ body {
   top: 20px;
   left: 20px;
   background: rgba(255,59,48,0.2);
-  padding: 5px 12px;
+  padding: 6px 12px;
   border-radius: 15px;
   font-size: 12px;
   color: #ff3b30;
@@ -179,8 +176,8 @@ body {
 }
 
 .rec-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   background-color: #ff3b30;
   border-radius: 50%;
   animation: pulse 1s infinite;
@@ -188,7 +185,7 @@ body {
 
 @keyframes pulse {
   0% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.3; }
   100% { opacity: 1; }
 }
 
