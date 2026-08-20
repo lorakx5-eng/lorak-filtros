@@ -2,34 +2,43 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lorak Filtros</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Filtro de Aniversário</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header>
-    <h1>Lorak Filtros</h1>
-    <p id="evento-nome">Carregando evento...</p>
-  </header>
+  <!-- Cabeçalho removido conforme solicitado -->
 
   <main class="app-container">
     <div class="camera-wrapper">
+      <!-- O elemento video exibe a câmera -->
       <video id="webcam" autoplay playsinline muted></video>
+      <!-- A moldura fica por cima -->
       <img id="moldura" src="" alt="Moldura" class="moldura-overlay">
+      <!-- Elementos de pré-visualização (escondidos inicialmente) -->
       <img id="preview-img" class="hidden">
       <video id="preview-video" class="hidden" controls playsinline></video>
+      
+      <!-- Indicador de gravação -->
+      <div id="recording-status" class="hidden">
+        <span class="rec-dot"></span> GRAVANDO
+      </div>
     </div>
 
-    <!-- Controles da Câmera -->
+    <!-- Controles principais da câmera -->
     <div id="controls-camera" class="controls">
-      <div class="mode-selector">
-        <button id="btn-mode-foto" class="active">FOTO</button>
-        <button id="btn-mode-video">VÍDEO</button>
+      <div class="top-row">
+        <div class="mode-selector">
+          <button id="btn-mode-foto" class="active">FOTO</button>
+          <button id="btn-mode-video">VÍDEO</button>
+        </div>
+        <!-- Botão para mudar de câmera (frontal/traseira) -->
+        <button id="btn-switch-camera" class="btn-icon">🔄</button>
       </div>
       <button id="btn-capture" class="btn-shutter"></button>
     </div>
 
-    <!-- Controles de Pré-visualização -->
+    <!-- Controles de pré-visualização -->
     <div id="controls-preview" class="controls hidden">
       <button id="btn-refazer" class="btn-secondary">Refazer</button>
       <button id="btn-salvar" class="btn-primary">Salvar</button>
