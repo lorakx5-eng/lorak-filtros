@@ -33,6 +33,7 @@ const btnSalvar = document.getElementById('btn-salvar');
 const frameImg = new Image();
 let frameLoaded = false;
 
+// 1. Carrega Configurações do Evento
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
@@ -47,16 +48,15 @@ async function loadConfig() {
 
     moldura.src = objectURL;
     
-    frameImg.onload = () => {
-      frameLoaded = true;
-    };
+    frameImg.onload = () => { frameLoaded = true; };
     frameImg.src = objectURL;
 
   } catch (e) {
-    console.error("Erro ao carregar evento JSON ou imagem da moldura:", e);
+    console.error("Erro ao carregar o evento ou moldura:", e);
   }
 }
 
+// 2. Inicialização da Câmera (Sem Espelhamento)
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -76,8 +76,9 @@ async function startCamera() {
     webcam.srcObject = mediaStream;
     await webcam.play();
     
-    // Sem espelhamento na tela
+    // Garante que a imagem visual não fique espelhada
     webcam.style.transform = "none";
+    webcam.style.webkitTransform = "none";
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
@@ -114,7 +115,7 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Renderização direta sem espelhamento
+// Renderização Câmera + Moldura no Canvas
 function drawFrameToContext(ctx, width, height) {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
@@ -140,14 +141,11 @@ function drawFrameToContext(ctx, width, height) {
   }
 
   ctx.save();
-
-  // Câmera gravada de forma direta/não espelhada
   if (webcam.readyState >= 2) {
     ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   }
   ctx.restore();
 
-  // Moldura sobreposta
   if (frameLoaded) {
     ctx.drawImage(frameImg, 0, 0, width, height);
   } else if (moldura.complete && moldura.naturalWidth > 0) {
@@ -164,13 +162,9 @@ function takePhoto() {
   drawFrameToContext(ctx, TARGET_WIDTH, TARGET_HEIGHT);
 
   canvas.toBlob((blob) => {
-    if (!blob) {
-      alert("Erro ao gerar foto. Tente novamente.");
-      return;
-    }
+    if (!blob) return;
     capturedBlob = blob;
-    const url = URL.createObjectURL(blob);
-    previewImg.src = url;
+    previewImg.src = URL.createObjectURL(blob);
     previewImg.classList.remove('hidden');
     showPreviewControls();
   }, 'image/png', 0.95);
@@ -207,12 +201,9 @@ function startRecording() {
     canvasStream.addTrack(audioTracks[0]);
   }
 
-  let options = { mimeType: 'video/webm;codecs=vp8' };
+  let options = { mimeType: 'video/mp4' };
   if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = { mimeType: 'video/mp4' };
-  }
-  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = {};
+    options = { mimeType: 'video/webm;codecs=vp8' };
   }
 
   try {
@@ -222,9 +213,7 @@ function startRecording() {
   }
 
   mediaRecorder.ondataavailable = (e) => {
-    if (e.data.size > 0) {
-      recordedChunks.push(e.data);
-    }
+    if (e.data.size > 0) recordedChunks.push(e.data);
   };
 
   mediaRecorder.onstop = processVideo;
@@ -232,12 +221,8 @@ function startRecording() {
 }
 
 function stopRecording() {
-  if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
-  }
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
-  }
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   recordingStatus.classList.add('hidden');
   btnCapture.classList.remove('recording');
   btnSwitchCamera.classList.remove('hidden');
@@ -262,16 +247,15 @@ function showPreviewControls() {
 btnRefazer.addEventListener('click', () => {
   previewImg.classList.add('hidden');
   previewVideo.classList.add('hidden');
-  
   webcam.classList.remove('hidden');
   moldura.classList.remove('hidden');
   btnSwitchCamera.classList.remove('hidden');
-  
   controlsPreview.classList.add('hidden');
   controlsCamera.classList.remove('hidden');
   capturedBlob = null;
 });
 
+// Salvamento na Galeria (iOS + Android) e envio ao Google Drive
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
@@ -281,15 +265,41 @@ btnSalvar.addEventListener('click', async () => {
   const isFoto = captureMode === 'foto';
   const type = isFoto ? 'foto' : 'video';
   const extension = isFoto ? 'png' : (capturedBlob.type.includes('mp4') ? 'mp4' : 'webm');
-  const fileName = `lorak_${type}_${Date.now()}.${extension}`;
+  const fileName = `cabine_${type}_${Date.now()}.${extension}`;
 
-  const downloadLink = document.createElement('a');
-  downloadLink.href = URL.createObjectURL(capturedBlob);
-  downloadLink.download = fileName;
-  downloadLink.click();
+  const fileToSave = new File([capturedBlob], fileName, { 
+    type: capturedBlob.type || (isFoto ? 'image/png' : 'video/mp4') 
+  });
 
+  let savedLocally = false;
+
+  // Usa Web Share API para o iOS salvar diretamente em Fotos / Galeria
+  if (navigator.canShare && navigator.canShare({ files: [fileToSave] })) {
+    try {
+      await navigator.share({
+        files: [fileToSave],
+        title: 'Salvar Mídia',
+        text: 'Sua foto/vídeo com a moldura!'
+      });
+      savedLocally = true;
+    } catch (shareErr) {
+      console.log("Compartilhamento cancelado:", shareErr);
+    }
+  }
+
+  // Fallback para download padrão
+  if (!savedLocally) {
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(capturedBlob);
+    downloadLink.download = fileName;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  }
+
+  // Envio para Google Drive via Apps Script
   if (!GOOGLE_SCRIPT_URL) {
-    alert("Salvo no dispositivo!");
+    alert("Salvo com sucesso!");
     finalizeSalvar();
     return;
   }
@@ -297,27 +307,20 @@ btnSalvar.addEventListener('click', async () => {
   const reader = new FileReader();
   reader.readAsDataURL(capturedBlob);
   reader.onloadend = async () => {
-    const base64Data = reader.result;
-
     try {
       await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
-          base64: base64Data,
+          base64: reader.result,
           filename: fileName,
           mimeType: capturedBlob.type || (isFoto ? 'image/png' : 'video/webm')
         })
       });
-      
-      alert("Sucesso! Salvo no dispositivo e enviado ao Google Drive.");
-
+      alert("Sucesso! Mídia salva e enviada ao Google Drive.");
     } catch (err) {
       console.error("Erro ao enviar para o Drive:", err);
-      alert("Salvo no dispositivo, mas ocorreu uma falha no envio para o Drive.");
     } finally {
       finalizeSalvar();
     }
