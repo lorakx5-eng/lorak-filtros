@@ -1,4 +1,3 @@
-/* Reset Básico e Prevenção de Seleção */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -17,7 +16,6 @@ html, body {
   color: #ffffff;
 }
 
-/* Container Principal do App */
 .app-container {
   position: relative;
   width: 100vw;
@@ -30,7 +28,6 @@ html, body {
   overflow: hidden;
 }
 
-/* Área de Câmera e Moldura */
 .camera-wrapper {
   position: absolute;
   top: 0;
@@ -44,20 +41,15 @@ html, body {
   background-color: #000000;
 }
 
-/* Elemento de Vídeo da Câmera */
+/* Sem espelhamento na tela */
 #webcam {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: none;
+  transform: none !important;
+  -webkit-transform: none !important;
 }
 
-/* Espelhamento visual da prévia ao vivo apenas para câmera frontal */
-#webcam.mirror-front {
-  transform: scaleX(-1);
-}
-
-/* Moldura sobreposta */
 .moldura-overlay {
   position: absolute;
   top: 0;
@@ -69,7 +61,6 @@ html, body {
   z-index: 2;
 }
 
-/* Previews de Foto e Vídeo Gravados */
 #preview-img, #preview-video {
   position: absolute;
   top: 0;
@@ -81,7 +72,6 @@ html, body {
   background-color: #000000;
 }
 
-/* Botão de Trocar de Câmera estilo Stories */
 .btn-icon-stories {
   position: absolute;
   top: 20px;
@@ -111,7 +101,6 @@ html, body {
   height: 24px;
 }
 
-/* Status de Gravação REC */
 #recording-status {
   position: absolute;
   top: 24px;
@@ -144,7 +133,6 @@ html, body {
   100% { opacity: 0.3; transform: scale(0.8); }
 }
 
-/* Controles Flutuantes Inferiores */
 .controls {
   position: absolute;
   bottom: 0;
@@ -159,7 +147,6 @@ html, body {
   background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
-/* Botão do Obturador (Shutter) */
 .shutter-container {
   display: flex;
   justify-content: center;
@@ -188,7 +175,6 @@ html, body {
   transform: scale(0.75);
 }
 
-/* Seleção de Modo (FOTO / VÍDEO) */
 .mode-selector {
   display: flex;
   gap: 20px;
@@ -216,7 +202,6 @@ html, body {
   border-bottom: 2px solid #ffffff;
 }
 
-/* Botões de Ação na Preview (Refazer / Salvar) */
 #controls-preview {
   flex-direction: row;
   justify-content: space-between;
@@ -259,7 +244,6 @@ html, body {
   box-shadow: none;
 }
 
-/* Classe utilitária para ocultar elementos */
 .hidden {
   display: none !important;
 }
