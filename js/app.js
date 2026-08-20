@@ -30,25 +30,33 @@ const btnCapture = document.getElementById('btn-capture');
 const btnRefazer = document.getElementById('btn-refazer');
 const btnSalvar = document.getElementById('btn-salvar');
 
-// Elemento de imagem separado e isolado para o Canvas (Evita Tainted Canvas)
+// Elemento auxiliar para renderização segura da moldura no Canvas
 const frameImg = new Image();
-frameImg.crossOrigin = "anonymous";
+let frameLoaded = false;
 
-// 1. Carrega Configuração e Pré-carrega a Imagem da Moldura
+// 1. Carrega Configurações e Converte Moldura em Blob Seguro (Zero erro de CORS)
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
     currentConfig = await response.json();
     
     const frameUrl = currentConfig.frame || "assets/molduras/lianamaria.png";
-    
-    // Atualiza a imagem na tela e o buffer da memória
-    moldura.src = frameUrl;
-    frameImg.src = frameUrl;
-
     GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl || "";
+
+    // Baixa a moldura como Blob para garantir que o Canvas nunca seja contaminado (Tainted)
+    const imgRes = await fetch(frameUrl);
+    const imgBlob = await imgRes.blob();
+    const objectURL = URL.createObjectURL(imgBlob);
+
+    moldura.src = objectURL;
+    
+    frameImg.onload = () => {
+      frameLoaded = true;
+    };
+    frameImg.src = objectURL;
+
   } catch (e) {
-    console.error("Erro ao carregar evento JSON:", e);
+    console.error("Erro ao carregar evento JSON/Moldura:", e);
   }
 }
 
@@ -70,10 +78,11 @@ async function startCamera() {
     
     mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcam.srcObject = mediaStream;
+    
     await webcam.play();
     
-    // Remove classe mirror para garantir que não espelhe
-    webcam.classList.remove('mirror');
+    // Garante sem espelhamento visual no CSS
+    webcam.style.transform = "none";
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
@@ -81,7 +90,7 @@ async function startCamera() {
   }
 }
 
-// Alternância de Modos
+// Controles de Modo
 btnModeFoto.addEventListener('click', () => {
   captureMode = 'foto';
   btnModeFoto.classList.add('active');
@@ -111,7 +120,7 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Desenha Câmera + Moldura no Canvas (Sem Espelhamento)
+// Desenha Câmera + Moldura no Canvas Sem Espelhar Câmera Frontal
 function drawFrameToContext(ctx, width, height) {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
@@ -138,14 +147,14 @@ function drawFrameToContext(ctx, width, height) {
 
   ctx.save();
 
-  // 1. Desenha o vídeo da Câmera (Sem inversão/espelhamento)
+  // 1. Desenha o vídeo da Câmera (Original / Sem espelhar)
   if (webcam.readyState >= 2) {
     ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   }
   ctx.restore();
 
   // 2. Desenha a Moldura por cima
-  if (frameImg.complete && frameImg.naturalWidth > 0) {
+  if (frameLoaded) {
     ctx.drawImage(frameImg, 0, 0, width, height);
   } else if (moldura.complete && moldura.naturalWidth > 0) {
     ctx.drawImage(moldura, 0, 0, width, height);
@@ -161,26 +170,17 @@ function takePhoto() {
 
   drawFrameToContext(ctx, TARGET_WIDTH, TARGET_HEIGHT);
 
-  try {
-    const dataUrl = canvas.toDataURL('image/png', 0.95);
-    
-    // Converte DataURL para Blob para o upload e download
-    const byteString = atob(dataUrl.split(',')[1]);
-    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      alert("Erro ao capturar a foto. Tente novamente.");
+      return;
     }
-    capturedBlob = new Blob([ab], { type: mimeString });
-
-    previewImg.src = dataUrl;
+    capturedBlob = blob;
+    const url = URL.createObjectURL(blob);
+    previewImg.src = url;
     previewImg.classList.remove('hidden');
     showPreviewControls();
-  } catch (e) {
-    console.error("Erro ao gerar imagem no Canvas (CORS):", e);
-    alert("Erro ao processar imagem. Verifique o caminho da moldura.");
-  }
+  }, 'image/png', 0.95);
 }
 
 // Gravação de Vídeo
@@ -298,7 +298,7 @@ btnSalvar.addEventListener('click', async () => {
   downloadLink.download = fileName;
   downloadLink.click();
 
-  // 2. Envio para o Google Drive via Apps Script
+  // 2. Envio para o Google Drive
   if (!GOOGLE_SCRIPT_URL) {
     alert("Salvo no dispositivo!");
     finalizeSalvar();
