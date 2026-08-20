@@ -34,7 +34,7 @@ const btnSalvar = document.getElementById('btn-salvar');
 const frameImg = new Image();
 let frameLoaded = false;
 
-// 1. Carrega Configurações e Converte Moldura em Blob Seguro (Zero erro de CORS)
+// 1. Carrega Configurações e Converte Moldura em Blob Seguro (Previne Erros de CORS/Canvas)
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
@@ -43,7 +43,6 @@ async function loadConfig() {
     const frameUrl = currentConfig.frame || "assets/molduras/lianamaria.png";
     GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl || "";
 
-    // Baixa a moldura como Blob para garantir que o Canvas nunca seja contaminado (Tainted)
     const imgRes = await fetch(frameUrl);
     const imgBlob = await imgRes.blob();
     const objectURL = URL.createObjectURL(imgBlob);
@@ -80,9 +79,13 @@ async function startCamera() {
     webcam.srcObject = mediaStream;
     
     await webcam.play();
-    
-    // Garante sem espelhamento visual no CSS
-    webcam.style.transform = "none";
+
+    // Aplica espelhamento visual no elemento de preview conforme o modo
+    if (currentCameraMode === 'user') {
+      webcam.classList.add('mirror-front');
+    } else {
+      webcam.classList.remove('mirror-front');
+    }
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
@@ -120,7 +123,7 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Desenha Câmera + Moldura no Canvas Sem Espelhar Câmera Frontal
+// Desenha Câmera + Moldura no Canvas (Com Inversão Inteligente para Não Espelhar a Frontal)
 function drawFrameToContext(ctx, width, height) {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
@@ -147,13 +150,20 @@ function drawFrameToContext(ctx, width, height) {
 
   ctx.save();
 
-  // 1. Desenha o vídeo da Câmera (Original / Sem espelhar)
+  // Se for Câmera Frontal, des-espelhamos a imagem para a foto/vídeo saírem corretos
+  if (currentCameraMode === 'user') {
+    ctx.translate(width, 0);
+    ctx.scale(-1, 1);
+    drawX = width - drawX - drawWidth;
+  }
+
+  // 1. Desenha o vídeo da Câmera
   if (webcam.readyState >= 2) {
     ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   }
   ctx.restore();
 
-  // 2. Desenha a Moldura por cima
+  // 2. Desenha a Moldura por cima (sempre normal, sem inverter)
   if (frameLoaded) {
     ctx.drawImage(frameImg, 0, 0, width, height);
   } else if (moldura.complete && moldura.naturalWidth > 0) {
