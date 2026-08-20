@@ -7,9 +7,13 @@ let captureMode = 'foto'; // 'foto' ou 'video'
 let capturedBlob = null;
 let currentCameraMode = 'user'; // 'user' (frontal) ou 'environment' (traseira)
 
-// Dimensões Fixas Padrão (Full HD Vertical 9:16)
+// Dimensões Padrão de Saída (1080x1920 Full HD Vertical)
 const TARGET_WIDTH = 1080;
 const TARGET_HEIGHT = 1920;
+
+let recordCanvas = null;
+let recordCtx = null;
+let animFrameId = null;
 
 const webcam = document.getElementById('webcam');
 const moldura = document.getElementById('moldura');
@@ -27,11 +31,12 @@ const btnCapture = document.getElementById('btn-capture');
 const btnRefazer = document.getElementById('btn-refazer');
 const btnSalvar = document.getElementById('btn-salvar');
 
-// 1. Carrega configuração do evento
+// 1. Carrega a Configuração do Evento
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
     currentConfig = await response.json();
+    moldura.crossOrigin = "anonymous";
     moldura.src = currentConfig.frame || "assets/molduras/lianamaria.png";
     GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl;
   } catch (e) {
@@ -39,7 +44,7 @@ async function loadConfig() {
   }
 }
 
-// 2. Inicia Câmera pedindo resolução de alta definição
+// 2. Inicia Câmera de Forma Otimizada
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -49,16 +54,17 @@ async function startCamera() {
     const constraints = {
       video: { 
         facingMode: currentCameraMode,
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30, max: 30 }
       },
       audio: true
     };
     
     mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcam.srcObject = mediaStream;
+    await webcam.play();
     
-    // Espelha a visualização apenas para a câmera frontal
     if (currentCameraMode === 'user') {
       webcam.classList.add('mirror');
     } else {
@@ -71,7 +77,7 @@ async function startCamera() {
   }
 }
 
-// 3. Seleção de Modos e Câmera
+// Controles de Modo
 btnModeFoto.addEventListener('click', () => {
   captureMode = 'foto';
   btnModeFoto.classList.add('active');
@@ -101,73 +107,109 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// --- Lógica da Foto Fixa em 1080x1920 ---
-async function takePhoto() {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+// --- Função Auxiliar de Renderização das Camadas no Canvas ---
+function drawFrameToCanvas(ctx, width, height) {
+  const videoWidth = webcam.videoWidth || width;
+  const videoHeight = webcam.videoHeight || height;
 
-  // FORÇADO: Resolução de saída exata em todos os dispositivos
-  canvas.width = TARGET_WIDTH;
-  canvas.height = TARGET_HEIGHT;
-
-  const videoWidth = webcam.videoWidth || TARGET_WIDTH;
-  const videoHeight = webcam.videoHeight || TARGET_HEIGHT;
-
-  // Cálculo do recorte proporcional (Cover) da Câmera
-  const canvasAspect = TARGET_WIDTH / TARGET_HEIGHT;
+  const canvasAspect = width / height;
   const videoAspect = videoWidth / videoHeight;
 
   let drawWidth, drawHeight, drawX, drawY;
 
   if (videoAspect > canvasAspect) {
-    drawHeight = TARGET_HEIGHT;
-    drawWidth = TARGET_HEIGHT * videoAspect;
-    drawX = (TARGET_WIDTH - drawWidth) / 2;
+    drawHeight = height;
+    drawWidth = height * videoAspect;
+    drawX = (width - drawWidth) / 2;
     drawY = 0;
   } else {
-    drawWidth = TARGET_WIDTH;
-    drawHeight = TARGET_WIDTH / videoAspect;
+    drawWidth = width;
+    drawHeight = width / videoAspect;
     drawX = 0;
-    drawY = (TARGET_HEIGHT - drawHeight) / 2;
+    drawY = (height - drawHeight) / 2;
   }
 
   ctx.save();
 
-  // Tratamento de Espelhamento
   if (currentCameraMode === 'user') {
-    ctx.translate(TARGET_WIDTH, 0);
+    ctx.translate(width, 0);
     ctx.scale(-1, 1);
     drawX = -drawX - drawWidth;
   }
 
-  // 1. Desenha a imagem da Câmera centralizada e sem distorcer
+  // 1. Desenha a Câmera
   ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
-
   ctx.restore();
 
-  // 2. Desenha a Moldura por cima ocupando exatamente 1080x1920
-  ctx.drawImage(moldura, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+  // 2. Desenha a Moldura sobreposta
+  if (moldura.complete && moldura.naturalWidth !== 0) {
+    ctx.drawImage(moldura, 0, 0, width, height);
+  }
+}
 
-  // Converte para imagem
+// --- Lógica da Foto Sem Tela Preta ---
+async function takePhoto() {
+  if (webcam.readyState < 2) {
+    await new Promise(resolve => webcam.onloadeddata = resolve);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = TARGET_WIDTH;
+  canvas.height = TARGET_HEIGHT;
+  const ctx = canvas.getContext('2d');
+
+  // Desenha Câmera + Moldura
+  drawFrameToCanvas(ctx, TARGET_WIDTH, TARGET_HEIGHT);
+
   canvas.toBlob((blob) => {
     capturedBlob = blob;
-    
     previewImg.src = URL.createObjectURL(blob);
     previewImg.classList.remove('hidden');
-    
     showPreviewControls();
   }, 'image/png', 0.95);
 }
 
-// --- Lógica de Gravação de Vídeo ---
+// --- Lógica do Vídeo Com Moldura e Fluidez ---
 function startRecording() {
   recordedChunks = [];
   recordingStatus.classList.remove('hidden');
   btnCapture.classList.add('recording');
   btnSwitchCamera.classList.add('hidden');
 
-  mediaRecorder = new MediaRecorder(mediaStream);
-  
+  recordCanvas = document.createElement('canvas');
+  recordCanvas.width = 720;  // Resolução Otimizada para Gravação Fluida em Celular
+  recordCanvas.height = 1280;
+  recordCtx = recordCanvas.getContext('2d');
+
+  // Loop de Renderização do Vídeo a 30 FPS
+  function renderLoop() {
+    drawFrameToCanvas(recordCtx, recordCanvas.width, recordCanvas.height);
+    animFrameId = requestAnimationFrame(renderLoop);
+  }
+  renderLoop();
+
+  // Captura o Stream do Canvas junto com o Áudio do Microfone
+  const canvasStream = recordCanvas.captureStream(30);
+  const audioTracks = mediaStream.getAudioTracks();
+  if (audioTracks.length > 0) {
+    canvasStream.addTrack(audioTracks[0]);
+  }
+
+  // Define os melhores codecs suportados para não travar
+  let options = { mimeType: 'video/webm;codecs=vp8' };
+  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    options = { mimeType: 'video/mp4' };
+  }
+  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    options = {};
+  }
+
+  try {
+    mediaRecorder = new MediaRecorder(canvasStream, options);
+  } catch (e) {
+    mediaRecorder = new MediaRecorder(canvasStream);
+  }
+
   mediaRecorder.ondataavailable = (e) => {
     if (e.data.size > 0) {
       recordedChunks.push(e.data);
@@ -175,24 +217,30 @@ function startRecording() {
   };
 
   mediaRecorder.onstop = processVideo;
-  mediaRecorder.start();
+  mediaRecorder.start(100);
 }
 
 function stopRecording() {
-  mediaRecorder.stop();
+  if (animFrameId) {
+    cancelAnimationFrame(animFrameId);
+  }
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
   recordingStatus.classList.add('hidden');
   btnCapture.classList.remove('recording');
   btnSwitchCamera.classList.remove('hidden');
 }
 
 async function processVideo() {
-  capturedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+  const mimeType = recordedChunks[0]?.type || 'video/mp4';
+  capturedBlob = new Blob(recordedChunks, { type: mimeType });
   previewVideo.src = URL.createObjectURL(capturedBlob);
   previewVideo.classList.remove('hidden');
   showPreviewControls();
 }
 
-// --- Controle de Telas ---
+// --- Alternância de Telas ---
 function showPreviewControls() {
   webcam.classList.add('hidden');
   moldura.classList.add('hidden');
@@ -219,11 +267,12 @@ btnSalvar.addEventListener('click', async () => {
   btnSalvar.innerText = "Salvando...";
   btnSalvar.disabled = true;
 
-  const type = captureMode === 'foto' ? 'foto' : 'video';
-  const extension = captureMode === 'foto' ? 'png' : 'webm';
+  const isFoto = captureMode === 'foto';
+  const type = isFoto ? 'foto' : 'video';
+  const extension = isFoto ? 'png' : (capturedBlob.type.includes('mp4') ? 'mp4' : 'webm');
   const fileName = `lorak_${type}_${Date.now()}.${extension}`;
 
-  // Download no dispositivo
+  // Download no celular
   const downloadLink = document.createElement('a');
   downloadLink.href = URL.createObjectURL(capturedBlob);
   downloadLink.download = fileName;
@@ -250,11 +299,11 @@ btnSalvar.addEventListener('click', async () => {
         body: JSON.stringify({
           base64: base64Data,
           filename: fileName,
-          mimeType: captureMode === 'foto' ? 'image/png' : 'video/webm'
+          mimeType: capturedBlob.type || (isFoto ? 'image/png' : 'video/webm')
         })
       });
       
-      alert("Sucesso! Cópia salva no dispositivo e enviada para o Google Drive.");
+      alert("Sucesso! Salvo no dispositivo e no Google Drive.");
 
     } catch (err) {
       console.error("Erro ao enviar para o Drive:", err);
@@ -271,5 +320,5 @@ function finalizeSalvar() {
   btnRefazer.click();
 }
 
-// Inicializa
+// Inicializa a Aplicação
 loadConfig().then(startCamera);
