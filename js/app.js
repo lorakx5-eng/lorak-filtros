@@ -55,7 +55,7 @@ async function startCamera() {
     mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcam.srcObject = mediaStream;
     
-    // CORREÇÃO: Aplica espelhamento apenas na câmera frontal (user)
+    // Aplica espelhamento apenas na câmera frontal (user)
     if (currentCameraMode === 'user') {
       webcam.classList.add('mirror');
     } else {
@@ -110,43 +110,22 @@ async function takePhoto() {
   const videoWidth = webcam.videoWidth;
   const videoHeight = webcam.videoHeight;
 
-  // CORREÇÃO: Configura o canvas para ter a mesma proporção e tamanho da foto original (alta qualidade)
+  // CORREÇÃO CRÍTICA DO ENCAIXE: Configura o canvas para ter a mesma proporção 
+  // e tamanho da foto original (alta qualidade).
   canvas.width = videoWidth;
   canvas.height = videoHeight;
 
-  // CORREÇÃO: Remove o espelhamento para a foto final
+  // Remove o espelhamento para a foto final
   ctx.save();
   ctx.scale(1, 1); 
-
-  // Pega as dimensões reais da moldura
-  const frameWidth = moldura.naturalWidth;
-  const frameHeight = moldura.naturalHeight;
-
-  // CORREÇÃO: Calcula a proporção da moldura para desenhar sem distorcer sobre o canvas
-  const frameAspectRatio = frameWidth / frameHeight;
-  const canvasAspectRatio = canvas.width / canvas.height;
-
-  let drawWidth, drawHeight, drawX, drawY;
-
-  if (frameAspectRatio > canvasAspectRatio) {
-    // Moldura é mais larga, ajusta pela altura
-    drawHeight = canvas.height;
-    drawWidth = canvas.height * frameAspectRatio;
-    drawX = (canvas.width - drawWidth) / 2;
-    drawY = 0;
-  } else {
-    // Moldura é mais alta, ajusta pela largura
-    drawWidth = canvas.width;
-    drawHeight = canvas.width / frameAspectRatio;
-    drawX = 0;
-    drawY = (canvas.height - drawHeight) / 2;
-  }
 
   // Desenha a câmera no fundo
   ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
   
-  // Desenha a moldura por cima, respeitando a proporção
-  ctx.drawImage(moldura, drawX, drawY, drawWidth, drawHeight);
+  // CORREÇÃO CRÍTICA DO ENCAIXE: Desenha a moldura por cima, 
+  // forçando ela a ocupar exatamente o tamanho do canvas (sticando, se necessário), 
+  // exatamente como fazemos com 'object-fit: fill' no CSS.
+  ctx.drawImage(moldura, 0, 0, canvas.width, canvas.height);
   
   ctx.restore(); // Restaura o estado do canvas
 
@@ -158,7 +137,7 @@ async function takePhoto() {
     previewImg.src = URL.createObjectURL(blob);
     previewImg.classList.remove('hidden');
     
-    // CORREÇÃO: Na pré-visualização, espelha de volta se for câmera frontal para manter a experiência do usuário
+    // Na pré-visualização, espelha de volta se for câmera frontal para manter a experiência do usuário
     if (currentCameraMode === 'user') {
       previewImg.classList.add('mirror');
     } else {
@@ -166,7 +145,7 @@ async function takePhoto() {
     }
     
     showPreviewControls();
-  }, 'image/png', 0.9); // Alta qualidade
+  }, 'image/png', 0.95); // Alta qualidade
 }
 
 // --- Lógica de Vídeo ---
@@ -201,9 +180,6 @@ async function processVideo() {
   capturedBlob = new Blob(recordedChunks, { type: 'video/webm' });
   previewVideo.src = URL.createObjectURL(capturedBlob);
   previewVideo.classList.remove('hidden');
-  
-  // Na pré-visualização de vídeo, geralmente não espelhamos, mas se necessário, adicione aqui
-  
   showPreviewControls();
 }
 
@@ -211,6 +187,7 @@ async function processVideo() {
 function showPreviewControls() {
   webcam.classList.add('hidden');
   moldura.classList.add('hidden');
+  btnSwitchCamera.classList.add('hidden'); // Garante que suma no preview
   controlsCamera.classList.add('hidden');
   controlsPreview.classList.remove('hidden');
 }
@@ -220,6 +197,7 @@ btnRefazer.addEventListener('click', () => {
   previewVideo.classList.add('hidden');
   webcam.classList.remove('hidden');
   moldura.classList.remove('hidden');
+  btnSwitchCamera.classList.remove('hidden');
   controlsPreview.classList.add('hidden');
   controlsCamera.classList.remove('hidden');
   capturedBlob = null;
@@ -242,7 +220,7 @@ btnSalvar.addEventListener('click', async () => {
   downloadLink.download = fileName;
   downloadLink.click();
 
-  // 2. Envio para Google Drive (apenas se a URL existir no JSON)
+  // 2. Envio para Google Drive
   if (!GOOGLE_SCRIPT_URL) {
     alert("Salvo no dispositivo. Configuração do Google Drive não encontrada.");
     finalizeSalvar();
@@ -256,9 +234,10 @@ btnSalvar.addEventListener('click', async () => {
 
     try {
       // Envio para o Apps Script
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      // Nota: Usamos 'no-cors' para o navegador aceitar, mas isso impede de ler a resposta.
+      await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // Necessário para evitar erro de CORS
+        mode: 'no-cors', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           base64: base64Data,
@@ -267,13 +246,11 @@ btnSalvar.addEventListener('click', async () => {
         })
       });
       
-      // Como estamos usando 'no-cors', não conseguimos ler a resposta real (success/error).
-      // Mas se o fetch não der erro, assumimos que foi enviado.
-      alert("Sucesso! Cópia salva no dispositivo e na nuvem.");
+      alert("Sucesso! Cópia salva no dispositivo e na nuvem do aniversário.");
 
     } catch (err) {
       console.error("Erro no envio para Drive:", err);
-      alert("Salvo no dispositivo, mas ocorreu um erro no envio para a nuvem. Tente novamente.");
+      alert("Salvo no dispositivo, mas ocorreu um erro no envio para a nuvem. Verifique sua conexão.");
     } finally {
       finalizeSalvar();
     }
