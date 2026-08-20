@@ -9,54 +9,76 @@ body {
   background-color: #000;
   color: #fff;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
   min-height: 100vh;
-}
-
-header {
-  text-align: center;
-  padding: 15px;
+  overflow: hidden; /* Evita rolagem na tela inteira */
 }
 
 .app-container {
   width: 100%;
+  height: 100vh;
   max-width: 480px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  position: relative;
 }
 
 .camera-wrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 9/16;
+  flex-grow: 1; /* Ocupa todo o espaço vertical restante */
   background-color: #111;
   overflow: hidden;
-  border-radius: 12px;
 }
 
-#webcam, #moldura, #preview-img, #preview-video {
+#webcam, #preview-img, #preview-video {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* CORREÇÃO: object-fit: contain garante que toda a imagem apareça sem zoom */
+  object-fit: contain; 
+}
+
+/* Espelha o vídeo apenas se a classe .mirror estiver ativa (definido no JS) */
+#webcam.mirror, #preview-img.mirror {
+  transform: scaleX(-1);
 }
 
 .moldura-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 10;
+  /* CORREÇÃO: object-fit: contain para a moldura não distorcer */
+  object-fit: contain;
 }
 
 .controls {
-  margin-top: 20px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
+  z-index: 20;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
+  max-width: 300px;
 }
 
 .mode-selector {
@@ -69,12 +91,25 @@ header {
   border: none;
   color: #888;
   font-weight: bold;
+  font-size: 14px;
   cursor: pointer;
+  padding: 5px 0;
 }
 
 .mode-selector button.active {
   color: #fff;
   border-bottom: 2px solid #fff;
+}
+
+.btn-icon {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  cursor: pointer;
 }
 
 .btn-shutter {
@@ -84,11 +119,46 @@ header {
   border: 5px solid #fff;
   background-color: transparent;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-shutter:active {
+  transform: scale(0.9);
 }
 
 .btn-shutter.recording {
   background-color: #ff3b30;
   border-color: #ff3b30;
+  border-radius: 10px; /* Vira um quadrado */
+}
+
+#recording-status {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(0,0,0,0.6);
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: white;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #ff3b30;
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 .hidden {
@@ -102,6 +172,8 @@ header {
   font-weight: bold;
   cursor: pointer;
   width: 80%;
+  max-width: 300px;
+  font-size: 16px;
 }
 
 .btn-primary {
