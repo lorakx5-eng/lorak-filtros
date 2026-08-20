@@ -30,21 +30,29 @@ const btnCapture = document.getElementById('btn-capture');
 const btnRefazer = document.getElementById('btn-refazer');
 const btnSalvar = document.getElementById('btn-salvar');
 
-// Carrega Configuração do Evento
+// Elemento de imagem separado e isolado para o Canvas (Evita Tainted Canvas)
+const frameImg = new Image();
+frameImg.crossOrigin = "anonymous";
+
+// 1. Carrega Configuração e Pré-carrega a Imagem da Moldura
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
     currentConfig = await response.json();
     
     const frameUrl = currentConfig.frame || "assets/molduras/lianamaria.png";
+    
+    // Atualiza a imagem na tela e o buffer da memória
     moldura.src = frameUrl;
-    GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl;
+    frameImg.src = frameUrl;
+
+    GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl || "";
   } catch (e) {
     console.error("Erro ao carregar evento JSON:", e);
   }
 }
 
-// Inicia Câmera
+// 2. Inicia Câmera
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -62,8 +70,6 @@ async function startCamera() {
     
     mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcam.srcObject = mediaStream;
-    
-    // Garante a execução da câmera no celular
     await webcam.play();
     
     if (currentCameraMode === 'user') {
@@ -74,10 +80,11 @@ async function startCamera() {
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
-    alert("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
+    alert("Não foi possível acessar a câmera. Verifique as permissões.");
   }
 }
 
+// Alternância de Modos
 btnModeFoto.addEventListener('click', () => {
   captureMode = 'foto';
   btnModeFoto.classList.add('active');
@@ -107,7 +114,7 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Função Central de Renderização (Desenha Câmera + Moldura no Canvas)
+// Desenha Câmera + Moldura no Canvas
 function drawFrameToContext(ctx, width, height) {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
@@ -134,26 +141,28 @@ function drawFrameToContext(ctx, width, height) {
 
   ctx.save();
 
-  // Tratamento de Espelhamento para Câmera Frontal
+  // Espelhamento para câmera frontal
   if (currentCameraMode === 'user') {
     ctx.translate(width, 0);
     ctx.scale(-1, 1);
     drawX = -drawX - drawWidth;
   }
 
-  // 1. Desenha a Câmera Ativa
-  if (webcam.readyState >= 2) { // 2 = HAVE_CURRENT_DATA
+  // 1. Desenha o vídeo da Câmera
+  if (webcam.readyState >= 2) {
     ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   }
   ctx.restore();
 
   // 2. Desenha a Moldura por cima
-  if (moldura.complete && moldura.naturalWidth > 0) {
+  if (frameImg.complete && frameImg.naturalWidth > 0) {
+    ctx.drawImage(frameImg, 0, 0, width, height);
+  } else if (moldura.complete && moldura.naturalWidth > 0) {
     ctx.drawImage(moldura, 0, 0, width, height);
   }
 }
 
-// Captura da Foto
+// Captura de Foto
 function takePhoto() {
   const canvas = document.createElement('canvas');
   canvas.width = TARGET_WIDTH;
@@ -162,14 +171,27 @@ function takePhoto() {
 
   drawFrameToContext(ctx, TARGET_WIDTH, TARGET_HEIGHT);
 
-  canvas.toBlob((blob) => {
-    capturedBlob = blob;
-    previewImg.src = URL.createObjectURL(blob);
+  try {
+    // Tenta gerar a imagem via DataURL primeiro para evitar bloqueios de Blob zerado
+    const dataUrl = canvas.toDataURL('image/png', 0.95);
     
-    // Oculta vídeo e exibe foto final no preview
+    // Converte DataURL para Blob para o upload e download
+    const byteString = atob(dataUrl.split(',')[1]);
+    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    capturedBlob = new Blob([ab], { type: mimeString });
+
+    previewImg.src = dataUrl;
     previewImg.classList.remove('hidden');
     showPreviewControls();
-  }, 'image/png', 0.95);
+  } catch (e) {
+    console.error("Erro ao gerar imagem no Canvas (CORS):", e);
+    alert("Erro ao processar imagem. Verifique o caminho da moldura.");
+  }
 }
 
 // Gravação de Vídeo
@@ -269,7 +291,7 @@ btnRefazer.addEventListener('click', () => {
   capturedBlob = null;
 });
 
-// Envio para o Google Drive e Download Local
+// Salvamento e Envio ao Google Drive
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
@@ -281,11 +303,13 @@ btnSalvar.addEventListener('click', async () => {
   const extension = isFoto ? 'png' : (capturedBlob.type.includes('mp4') ? 'mp4' : 'webm');
   const fileName = `lorak_${type}_${Date.now()}.${extension}`;
 
+  // 1. Download Local no Dispositivo
   const downloadLink = document.createElement('a');
   downloadLink.href = URL.createObjectURL(capturedBlob);
   downloadLink.download = fileName;
   downloadLink.click();
 
+  // 2. Envio para o Google Drive via Apps Script
   if (!GOOGLE_SCRIPT_URL) {
     alert("Salvo no dispositivo!");
     finalizeSalvar();
@@ -311,11 +335,11 @@ btnSalvar.addEventListener('click', async () => {
         })
       });
       
-      alert("Sucesso! Salvo no dispositivo e no Google Drive.");
+      alert("Sucesso! Salvo no dispositivo e enviado ao Google Drive.");
 
     } catch (err) {
       console.error("Erro ao enviar para o Drive:", err);
-      alert("Salvo no dispositivo, mas ocorreu um erro no envio para a nuvem.");
+      alert("Salvo no dispositivo, mas ocorreu uma falha no envio para o Drive.");
     } finally {
       finalizeSalvar();
     }
