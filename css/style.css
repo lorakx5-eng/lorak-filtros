@@ -3,49 +3,36 @@
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
-body {
+html, body {
+  width: 100%;
+  height: 100%;
   background-color: #000;
   color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
   overflow: hidden;
+  position: fixed; /* Evita rolagem elástica no iOS/Android */
 }
 
 .app-container {
   width: 100%;
-  height: 100vh;
+  height: 100%;
   max-width: 480px;
+  margin: 0 auto;
+  position: relative;
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 
+/* Área da Câmera: Encosta no topo e ocupa a tela inteira */
 .camera-wrapper {
-  position: relative;
-  width: 100%;
-  flex-grow: 1;
-  background-color: #111;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-
-/* Container que simula a proporção 9:16 (1080x1920) na tela do celular */
-.aspect-ratio-box {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  max-height: 100vh;
-  aspect-ratio: 9 / 16;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   background-color: #000;
 }
 
@@ -55,10 +42,10 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Câmera preenche sem distorcer */
+  object-fit: cover;
 }
 
-/* Espelhamento apenas da visualização da câmera frontal */
+/* Espelhamento apenas para a câmera frontal */
 #webcam.mirror {
   transform: scaleX(-1);
 }
@@ -71,86 +58,67 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 10;
-  object-fit: fill; /* Moldura se ajusta perfeitamente ao box 9:16 */
+  object-fit: fill; /* Preenche de ponta a ponta sem sobras */
 }
 
-/* Botão de Virar Câmera (Estilo Stories) */
+/* Botão Flutuante de Virar Câmera (Estilo Stories) */
 .btn-icon-stories {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.4);
+  top: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.35);
   border: none;
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  z-index: 20;
-  backdrop-filter: blur(4px);
-  transition: background 0.2s;
-}
-
-.btn-icon-stories:active {
-  background: rgba(0, 0, 0, 0.7);
+  z-index: 25;
+  backdrop-filter: blur(8px);
 }
 
 .btn-icon-stories svg {
-  fill: white;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
-/* Controles e Botões */
+/* Painel de Controles Sobreposto na Base (Overlay) */
 .controls {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 25px 20px;
-  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+  padding: 20px 20px (env(safe-area-inset-bottom, 20px)); /* Adaptação para iPhone/Android modernos */
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
   z-index: 30;
 }
 
-.mode-selector {
+.shutter-container {
   display: flex;
-  gap: 20px;
-}
-
-.mode-selector button {
-  background: none;
-  border: none;
-  color: #aaa;
-  font-weight: bold;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 5px 0;
-  text-transform: uppercase;
-}
-
-.mode-selector button.active {
-  color: #fff;
-  border-bottom: 2px solid #fff;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .btn-shutter {
-  width: 72px;
-  height: 72px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
-  border: 5px solid #fff;
+  border: 4px solid #fff;
   background-color: transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, background-color 0.2s ease;
 }
 
 .btn-shutter:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
 }
 
 .btn-shutter.recording {
@@ -159,20 +127,43 @@ body {
   border-radius: 12px;
 }
 
+.mode-selector {
+  display: flex;
+  gap: 24px;
+}
+
+.mode-selector button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s;
+}
+
+.mode-selector button.active {
+  color: #fff;
+  border-bottom: 2px solid #fff;
+}
+
 #recording-status {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  background: rgba(255,59,48,0.2);
+  top: 16px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.5);
   padding: 6px 12px;
-  border-radius: 15px;
-  font-size: 12px;
-  color: #ff3b30;
-  font-weight: bold;
-  z-index: 40;
+  border-radius: 20px;
+  font-size: 11px;
+  color: #fff;
+  font-weight: 600;
+  z-index: 25;
   display: flex;
   align-items: center;
   gap: 6px;
+  backdrop-filter: blur(4px);
 }
 
 .rec-dot {
@@ -194,15 +185,15 @@ body {
 }
 
 .btn-primary, .btn-secondary {
-  padding: 14px 30px;
-  border-radius: 30px;
+  padding: 14px 28px;
+  border-radius: 28px;
   border: none;
-  font-weight: bold;
+  font-weight: 700;
   cursor: pointer;
   width: 85%;
-  max-width: 320px;
-  font-size: 16px;
-  text-transform: uppercase;
+  max-width: 300px;
+  font-size: 15px;
+  letter-spacing: 0.5px;
 }
 
 .btn-primary {
@@ -211,6 +202,7 @@ body {
 }
 
 .btn-secondary {
-  background-color: #333;
+  background-color: rgba(255, 255, 255, 0.2);
   color: #fff;
+  backdrop-filter: blur(10px);
 }
