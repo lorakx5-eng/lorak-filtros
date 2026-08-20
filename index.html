@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lorak Filtros</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Lorak Filtros</h1>
+    <p id="evento-nome">Carregando evento...</p>
+  </header>
+
+  <main class="app-container">
+    <div class="camera-wrapper">
+      <video id="webcam" autoplay playsinline muted></video>
+      <img id="moldura" src="" alt="Moldura" class="moldura-overlay">
+      <img id="preview-img" class="hidden">
+      <video id="preview-video" class="hidden" controls playsinline></video>
+    </div>
+
+    <!-- Controles da Câmera -->
+    <div id="controls-camera" class="controls">
+      <div class="mode-selector">
+        <button id="btn-mode-foto" class="active">FOTO</button>
+        <button id="btn-mode-video">VÍDEO</button>
+      </div>
+      <button id="btn-capture" class="btn-shutter"></button>
+    </div>
+
+    <!-- Controles de Pré-visualização -->
+    <div id="controls-preview" class="controls hidden">
+      <button id="btn-refazer" class="btn-secondary">Refazer</button>
+      <button id="btn-salvar" class="btn-primary">Salvar</button>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

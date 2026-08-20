@@ -1,0 +1,5 @@
+const EVENT_FOLDERS={};
+function doPost(e){try{const d=JSON.parse(e.postData.contents);if(!d.base64||!d.fileName||!d.eventSlug)throw new Error('Dados incompletos');const f=getFolder(d.eventSlug,d.eventName||d.eventSlug);const b=Utilities.newBlob(Utilities.base64Decode(d.base64),d.mimeType||'application/octet-stream',d.fileName);const file=f.createFile(b);return out({ok:true,fileId:file.getId(),url:file.getUrl()})}catch(err){return out({ok:false,error:String(err)})}}
+function doGet(){return out({ok:true,service:'Lorak Filtros'})}function getFolder(slug,name){if(EVENT_FOLDERS[slug])return DriveApp.getFolderById(EVENT_FOLDERS[slug]);let r=DriveApp.getFoldersByName('LORAK FILTROS');let root=r.hasNext()?r.next():DriveApp.createFolder('LORAK FILTROS');let fs=root.getFoldersByName(name);return fs.hasNext()?fs.next():root.createFolder(name)}function out(x){return ContentService.createTextOutput(JSON.stringify(x)).setMimeType(ContentService.MimeType.JSON)}
+
+https://script.google.com/macros/s/AKfycbwfNZ5vI9DoTBTlZ4BQRLTV9Lu5aTDc-4X3rgTXge2I7HgOvpKOrRQJQJti-UsLmajW/exec
