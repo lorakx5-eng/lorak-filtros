@@ -146,11 +146,34 @@ function drawFrameToContext(ctx, width, height) {
     drawY = (height - drawHeight) / 2;
   }
 
-  ctx.save();
-  if (webcam.readyState >= 2) {
-    ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
-  }
-  ctx.restore();
+ctx.save();
+
+if (webcam.readyState >= 2) {
+    if (currentCameraMode === 'user') {
+        // Corrige o espelhamento da câmera frontal
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+
+        ctx.drawImage(
+            webcam,
+            width - drawX - drawWidth,
+            drawY,
+            drawWidth,
+            drawHeight
+        );
+    } else {
+        // Câmera traseira normal
+        ctx.drawImage(
+            webcam,
+            drawX,
+            drawY,
+            drawWidth,
+            drawHeight
+        );
+    }
+}
+
+ctx.restore();
 
   if (frameLoaded) {
     ctx.drawImage(frameImg, 0, 0, width, height);
