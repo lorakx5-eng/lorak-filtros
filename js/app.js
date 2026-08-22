@@ -5,7 +5,7 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let captureMode = 'foto';
 let capturedBlob = null;
-let currentCameraMode = 'user';
+let currentCameraMode = 'user'; // 'user' para frontal, 'environment' para traseira
 
 const TARGET_WIDTH = 1080;
 const TARGET_HEIGHT = 1920;
@@ -30,10 +30,11 @@ const btnCapture = document.getElementById('btn-capture');
 const btnRefazer = document.getElementById('btn-refazer');
 const btnSalvar = document.getElementById('btn-salvar');
 
+// Objeto de imagem isolado para evitar contaminação no Canvas
 const frameImg = new Image();
 let frameLoaded = false;
 
-// 1. Carrega Configuração e Converte Moldura em Blob Seguro (Zero erro de CORS/Tainted Canvas)
+// 1. Carrega as configurações e a moldura como Blob seguro
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
@@ -42,6 +43,7 @@ async function loadConfig() {
     const frameUrl = currentConfig.frame || "assets/molduras/lianamaria.png";
     GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl || "";
 
+    // Converte a imagem da moldura para Blob para garantir compatibilidade no Canvas sem erros de CORS
     const imgRes = await fetch(frameUrl);
     const imgBlob = await imgRes.blob();
     const objectURL = URL.createObjectURL(imgBlob);
@@ -54,11 +56,11 @@ async function loadConfig() {
     frameImg.src = objectURL;
 
   } catch (e) {
-    console.error("Erro ao carregar evento JSON/Moldura:", e);
+    console.error("Erro ao carregar o JSON do evento ou a moldura:", e);
   }
 }
 
-// 2. Inicia Câmera (Compatível com Android e iOS sem Espelhamento)
+// 2. Inicializa a Câmera
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -76,10 +78,9 @@ async function startCamera() {
     
     mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcam.srcObject = mediaStream;
-    
     await webcam.play();
     
-    // Força desativação de espelhamento no CSS (iOS & Android)
+    // Força para que a imagem do vídeo NUNCA fique espelhada no visor
     webcam.style.transform = "none";
     webcam.style.webkitTransform = "none";
 
@@ -89,7 +90,7 @@ async function startCamera() {
   }
 }
 
-// Seleção de Modos (Foto / Vídeo)
+// Alternância entre Foto e Vídeo
 btnModeFoto.addEventListener('click', () => {
   captureMode = 'foto';
   btnModeFoto.classList.add('active');
@@ -102,11 +103,13 @@ btnModeVideo.addEventListener('click', () => {
   btnModeFoto.classList.remove('active');
 });
 
+// Troca de Câmera Frontal / Traseira
 btnSwitchCamera.addEventListener('click', () => {
   currentCameraMode = currentCameraMode === 'user' ? 'environment' : 'user';
   startCamera();
 });
 
+// Ação do Botão de Captura
 btnCapture.addEventListener('click', () => {
   if (captureMode === 'foto') {
     takePhoto();
@@ -119,7 +122,7 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Desenha Câmera + Moldura no Canvas (Sem Espelhar Câmera Frontal nem Traseira)
+// Desenha o vídeo da câmera e a moldura no Canvas SEM ESPELHAR
 function drawFrameToContext(ctx, width, height) {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
@@ -146,13 +149,13 @@ function drawFrameToContext(ctx, width, height) {
 
   ctx.save();
 
-  // Desenha vídeo da câmera sem qualquer rotação ou inversão
+  // Desenha o vídeo diretamente sem aplicar rotação ou escala negativa
   if (webcam.readyState >= 2) {
     ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   }
   ctx.restore();
 
-  // Desenha Moldura por cima
+  // Desenha a Moldura sobreposta
   if (frameLoaded) {
     ctx.drawImage(frameImg, 0, 0, width, height);
   } else if (moldura.complete && moldura.naturalWidth > 0) {
@@ -171,7 +174,7 @@ function takePhoto() {
 
   canvas.toBlob((blob) => {
     if (!blob) {
-      alert("Erro ao processar a foto. Tente novamente.");
+      alert("Erro ao gerar a imagem.");
       return;
     }
     capturedBlob = blob;
@@ -182,7 +185,7 @@ function takePhoto() {
   }, 'image/png', 0.95);
 }
 
-// Gravação de Vídeo (Compatível com Safari iOS e Chrome Android)
+// Gravação de Vídeo
 function startRecording() {
   recordedChunks = [];
   recordingStatus.classList.remove('hidden');
@@ -214,20 +217,16 @@ function startRecording() {
     canvasStream.addTrack(audioTracks[0]);
   }
 
-  // Codecs aceitos no iOS Safari e Android
-  let mimeType = 'video/mp4;codecs=avc1';
-  if (!MediaRecorder.isTypeSupported(mimeType)) {
-    mimeType = 'video/mp4';
+  let options = { mimeType: 'video/webm;codecs=vp8' };
+  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    options = { mimeType: 'video/mp4' };
   }
-  if (!MediaRecorder.isTypeSupported(mimeType)) {
-    mimeType = 'video/webm;codecs=vp8';
-  }
-  if (!MediaRecorder.isTypeSupported(mimeType)) {
-    mimeType = 'video/webm';
+  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    options = {};
   }
 
   try {
-    mediaRecorder = new MediaRecorder(canvasStream, { mimeType });
+    mediaRecorder = new MediaRecorder(canvasStream, options);
   } catch (e) {
     mediaRecorder = new MediaRecorder(canvasStream);
   }
@@ -283,91 +282,82 @@ btnRefazer.addEventListener('click', () => {
   capturedBlob = null;
 });
 
-// Salvamento na Galeria (iOS e Android via Web Share API + Download Direto)
-async function saveToGallery(blob, fileName) {
-  const file = new File([blob], fileName, { type: blob.type });
-
-  // 1. Tenta salvar nativamente na Galeria (iOS Safari / Android Chrome via Web Share API)
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: 'Salvar Foto/Vídeo',
-        text: 'Salvar na Galeria de Fotos'
-      });
-      return true;
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.warn('Compartilhamento cancelado ou não suportado:', err);
-      }
-    }
-  }
-
-  // 2. Fallback via elemento <a> de Download (Dispositivos Android / Desktop)
-  const downloadLink = document.createElement('a');
-  const objectUrl = URL.createObjectURL(blob);
-  downloadLink.href = objectUrl;
-  downloadLink.download = fileName;
-  document.body.appendChild(downloadLink);
-  downloadLink.click();
-  document.body.removeChild(downloadLink);
-  
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
-  return true;
-}
-
-// Botão Salvar (Galeria + Google Drive)
+// Botão "Baixar": Salva na Galeria (iOS/Android) e Envia para o Google Drive
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
-  btnSalvar.innerText = "Salvando...";
+  btnSalvar.innerText = "Baixando...";
   btnSalvar.disabled = true;
 
   const isFoto = captureMode === 'foto';
+  const type = isFoto ? 'foto' : 'video';
   const extension = isFoto ? 'png' : (capturedBlob.type.includes('mp4') ? 'mp4' : 'webm');
-  const fileName = `foto_${isFoto ? 'foto' : 'video'}_${Date.now()}.${extension}`;
+  const fileName = `lorak_${type}_${Date.now()}.${extension}`;
 
-  // 1. Salva na Galeria do Celular (Android & iOS)
-  await saveToGallery(capturedBlob, fileName);
+  // 1. Download/Salvar na Galeria
+  try {
+    const file = new File([capturedBlob], fileName, { 
+      type: capturedBlob.type || (isFoto ? 'image/png' : 'video/mp4') 
+    });
 
-  // 2. Envio em segundo plano para o Google Drive via Apps Script
-  if (GOOGLE_SCRIPT_URL) {
-    const reader = new FileReader();
-    reader.readAsDataURL(capturedBlob);
-    reader.onloadend = async () => {
-      const base64Data = reader.result;
-
-      try {
-        await fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify({
-            base64: base64Data,
-            filename: fileName,
-            mimeType: capturedBlob.type || (isFoto ? 'image/png' : 'video/webm')
-          })
-        });
-        
-        alert("Sucesso! Salvo na sua galeria e enviado ao Google Drive.");
-
-      } catch (err) {
-        console.error("Erro no envio para o Drive:", err);
-        alert("Salvo na galeria! Não foi possível enviar para o Google Drive.");
-      } finally {
-        finalizeSalvar();
-      }
-    };
-  } else {
-    alert("Arquivo salvo na sua galeria!");
-    finalizeSalvar();
+    // Se o dispositivo for iOS (Safari) ou suporte Web Share com arquivos, abre o menu nativo "Salvar Imagem/Vídeo"
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'Baixar Mídia',
+        text: 'Salvar na Galeria'
+      });
+    } else {
+      // Fallback padrão para Android Chrome / Navegadores Desktop
+      const downloadLink = document.createElement('a');
+      downloadLink.href = URL.createObjectURL(capturedBlob);
+      downloadLink.download = fileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  } catch (err) {
+    console.log("Download cancelado ou concluído via Web Share:", err);
   }
+
+  // 2. Envio em Segundo Plano para o Google Drive
+  if (!GOOGLE_SCRIPT_URL) {
+    finalizeSalvar();
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.readAsDataURL(capturedBlob);
+  reader.onloadend = async () => {
+    const base64Data = reader.result;
+
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify({
+          base64: base64Data,
+          filename: fileName,
+          mimeType: capturedBlob.type || (isFoto ? 'image/png' : 'video/webm')
+        })
+      });
+      
+      alert("Sucesso! Mídia salva no seu dispositivo e enviada ao Google Drive.");
+
+    } catch (err) {
+      console.error("Erro ao enviar para o Drive:", err);
+      alert("Arquivo baixado, mas ocorreu um erro ao salvar no Google Drive.");
+    } finally {
+      finalizeSalvar();
+    }
+  };
 });
 
 function finalizeSalvar() {
-  btnSalvar.innerText = "Salvar na Galeria / Drive";
+  btnSalvar.innerText = "Baixar";
   btnSalvar.disabled = false;
   btnRefazer.click();
 }
