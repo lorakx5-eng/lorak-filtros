@@ -76,9 +76,15 @@ async function startCamera() {
     webcam.srcObject = mediaStream;
     await webcam.play();
     
-    // Garante que a imagem visual não fique espelhada
+// Câmera frontal: corrige o espelhamento horizontal
+// Câmera traseira: mantém a orientação normal
+if (currentCameraMode === 'user') {
+    webcam.style.transform = "scaleX(-1)";
+    webcam.style.webkitTransform = "scaleX(-1)";
+} else {
     webcam.style.transform = "none";
     webcam.style.webkitTransform = "none";
+}
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
