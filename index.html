@@ -3,37 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Cabine de Fotos & Vídeos</title>
+  <title>Câmera com Moldura</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
   <div class="app-container">
-
-    <!-- Indicador de Gravação REC -->
-    <div id="recording-status" class="hidden">
-      <span class="rec-dot"></span> REC
+    <!-- Câmera e Moldura -->
+    <div class="camera-wrapper">
+      <video id="webcam" autoplay playsinline muted></video>
+      <img id="moldura" class="moldura-overlay" alt="Moldura" src="" />
+      <img id="preview-img" class="hidden" alt="Pré-visualização da Foto" />
+      <video id="preview-video" class="hidden" autoplay loop playsinline muted></video>
     </div>
 
     <!-- Botão Trocar Câmera (Estilo Instagram Stories) -->
     <button id="btn-switch-camera" class="btn-icon-stories" aria-label="Trocar Câmera">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 10c0-4.418-3.582-8-8-8S4 5.582 4 10c0 3.328 2.03 6.182 4.9 7.37L7 20h5l1.5-3"/>
-        <path d="M4 14c0 4.418 3.582 8 8 8s8-3.582 8-8c0-3.328-2.03-6.182-4.9-7.37L17 4h-5l-1.5 3"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 10c0-4.418-3.582-8-8-8S4 5.582 4 10m0 4c0 4.418 3.582 8 8 8s8-3.582 8-8"></path>
+        <polyline points="20 6 20 10 16 10"></polyline>
+        <polyline points="4 18 4 14 8 14"></polyline>
       </svg>
     </button>
 
-    <!-- Área de Exibição do Vídeo / Moldura -->
-    <div class="camera-wrapper">
-      <video id="webcam" autoplay playsinline muted></video>
-      <img id="moldura" class="moldura-overlay" alt="Moldura" src="" />
-      
-      <!-- Previews -->
-      <img id="preview-img" class="hidden" alt="Foto Capturada" />
-      <video id="preview-video" class="hidden" playsinline controls loop></video>
+    <!-- Indicador REC -->
+    <div id="recording-status" class="hidden">
+      <span class="rec-dot"></span> REC
     </div>
 
-    <!-- Controles da Câmera -->
+    <!-- Controles Modo Câmera -->
     <div id="controls-camera" class="controls">
       <div class="shutter-container">
         <button id="btn-capture" class="btn-shutter" aria-label="Capturar"></button>
@@ -45,12 +42,11 @@
       </div>
     </div>
 
-    <!-- Controles da Preview -->
+    <!-- Controles Modo Preview -->
     <div id="controls-preview" class="controls hidden">
       <button id="btn-refazer" class="btn-secondary">Refazer</button>
-      <button id="btn-salvar" class="btn-primary">Salvar</button>
+      <button id="btn-salvar" class="btn-primary">Salvar na Galeria / Drive</button>
     </div>
-
   </div>
 
   <script src="js/app.js"></script>
