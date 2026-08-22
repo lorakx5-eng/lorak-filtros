@@ -123,63 +123,68 @@ btnCapture.addEventListener('click', () => {
 
 // Renderização Câmera + Moldura no Canvas
 function drawFrameToContext(ctx, width, height) {
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, width, height);
 
-  const videoWidth = webcam.videoWidth || 720;
-  const videoHeight = webcam.videoHeight || 1280;
+    const videoWidth = webcam.videoWidth || 720;
+    const videoHeight = webcam.videoHeight || 1280;
 
-  const canvasAspect = width / height;
-  const videoAspect = videoWidth / videoHeight;
+    const canvasAspect = width / height;
+    const videoAspect = videoWidth / videoHeight;
 
-  let drawWidth, drawHeight, drawX, drawY;
+    let drawWidth, drawHeight, drawX, drawY;
 
-  if (videoAspect > canvasAspect) {
-    drawHeight = height;
-    drawWidth = height * videoAspect;
-    drawX = (width - drawWidth) / 2;
-    drawY = 0;
-  } else {
-    drawWidth = width;
-    drawHeight = width / videoAspect;
-    drawX = 0;
-    drawY = (height - drawHeight) / 2;
-  }
-
-ctx.save();
-
-if (webcam.readyState >= 2) {
-    if (currentCameraMode === 'user') {
-        // Corrige o espelhamento da câmera frontal
-        ctx.translate(width, 0);
-        ctx.scale(-1, 1);
-
-        ctx.drawImage(
-            webcam,
-            width - drawX - drawWidth,
-            drawY,
-            drawWidth,
-            drawHeight
-        );
+    if (videoAspect > canvasAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        drawX = (width - drawWidth) / 2;
+        drawY = 0;
     } else {
-        // Câmera traseira normal
-        ctx.drawImage(
-            webcam,
-            drawX,
-            drawY,
-            drawWidth,
-            drawHeight
-        );
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        drawX = 0;
+        drawY = (height - drawHeight) / 2;
     }
-}
 
-ctx.restore();
+    ctx.save();
 
-  if (frameLoaded) {
-    ctx.drawImage(frameImg, 0, 0, width, height);
-  } else if (moldura.complete && moldura.naturalWidth > 0) {
-    ctx.drawImage(moldura, 0, 0, width, height);
-  }
+    if (webcam.readyState >= 2) {
+
+        if (currentCameraMode === 'user') {
+
+            // Câmera frontal
+            ctx.translate(width, 0);
+            ctx.scale(-1, 1);
+
+            ctx.drawImage(
+                webcam,
+                width - drawX - drawWidth,
+                drawY,
+                drawWidth,
+                drawHeight
+            );
+
+        } else {
+
+            // Câmera traseira
+            ctx.drawImage(
+                webcam,
+                drawX,
+                drawY,
+                drawWidth,
+                drawHeight
+            );
+        }
+    }
+
+    ctx.restore();
+
+    // Moldura permanece normal
+    if (frameLoaded) {
+        ctx.drawImage(frameImg, 0, 0, width, height);
+    } else if (moldura.complete && moldura.naturalWidth > 0) {
+        ctx.drawImage(moldura, 0, 0, width, height);
+    }
 }
 
 function takePhoto() {
