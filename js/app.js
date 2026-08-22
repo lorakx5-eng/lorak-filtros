@@ -33,13 +33,18 @@ const btnSalvar = document.getElementById('btn-salvar');
 const frameImg = new Image();
 let frameLoaded = false;
 
-// 1. Carrega Configurações do Evento
+// 1. Carrega Configurações do Evento Dinamicamente via URL
 async function loadConfig() {
   try {
-    const response = await fetch('eventos/lianamaria-1-ano.json');
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventoParam = urlParams.get('evento') || 'exemplo'; // 'exemplo' como fallback
+
+    const response = await fetch(`eventos/${eventoParam}.json`);
+    if (!response.ok) throw new Error("Evento não encontrado");
+    
     currentConfig = await response.json();
     
-    const frameUrl = currentConfig.frame || "assets/molduras/lianamaria.png";
+    const frameUrl = currentConfig.frame || "assets/molduras/exemplo.png";
     GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl || "";
 
     const imgRes = await fetch(frameUrl);
@@ -56,7 +61,7 @@ async function loadConfig() {
   }
 }
 
-// 2. Inicialização da Câmera (Sem Espelhamento)
+// 2. Inicialização da Câmera
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -76,15 +81,13 @@ async function startCamera() {
     webcam.srcObject = mediaStream;
     await webcam.play();
     
-// Câmera frontal: corrige o espelhamento horizontal
-// Câmera traseira: mantém a orientação normal
-if (currentCameraMode === 'user') {
-    webcam.style.transform = "scaleX(-1)";
-    webcam.style.webkitTransform = "scaleX(-1)";
-} else {
-    webcam.style.transform = "none";
-    webcam.style.webkitTransform = "none";
-}
+    if (currentCameraMode === 'user') {
+      webcam.style.transform = "scaleX(-1)";
+      webcam.style.webkitTransform = "scaleX(-1)";
+    } else {
+      webcam.style.transform = "none";
+      webcam.style.webkitTransform = "none";
+    }
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
@@ -121,7 +124,6 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Renderização Câmera + Moldura no Canvas
 function drawFrameToContext(ctx, width, height) {
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
@@ -149,37 +151,17 @@ function drawFrameToContext(ctx, width, height) {
     ctx.save();
 
     if (webcam.readyState >= 2) {
-
         if (currentCameraMode === 'user') {
-
-            // Câmera frontal
             ctx.translate(width, 0);
             ctx.scale(-1, 1);
-
-            ctx.drawImage(
-                webcam,
-                width - drawX - drawWidth,
-                drawY,
-                drawWidth,
-                drawHeight
-            );
-
+            ctx.drawImage(webcam, width - drawX - drawWidth, drawY, drawWidth, drawHeight);
         } else {
-
-            // Câmera traseira
-            ctx.drawImage(
-                webcam,
-                drawX,
-                drawY,
-                drawWidth,
-                drawHeight
-            );
+            ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
         }
     }
 
     ctx.restore();
 
-    // Moldura permanece normal
     if (frameLoaded) {
         ctx.drawImage(frameImg, 0, 0, width, height);
     } else if (moldura.complete && moldura.naturalWidth > 0) {
@@ -289,7 +271,6 @@ btnRefazer.addEventListener('click', () => {
   capturedBlob = null;
 });
 
-// Salvamento na Galeria (iOS + Android) e envio ao Google Drive
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
@@ -307,7 +288,6 @@ btnSalvar.addEventListener('click', async () => {
 
   let savedLocally = false;
 
-  // Usa Web Share API para o iOS salvar diretamente em Fotos / Galeria
   if (navigator.canShare && navigator.canShare({ files: [fileToSave] })) {
     try {
       await navigator.share({
@@ -321,7 +301,6 @@ btnSalvar.addEventListener('click', async () => {
     }
   }
 
-  // Fallback para download padrão
   if (!savedLocally) {
     const downloadLink = document.createElement('a');
     downloadLink.href = URL.createObjectURL(capturedBlob);
@@ -331,7 +310,6 @@ btnSalvar.addEventListener('click', async () => {
     document.body.removeChild(downloadLink);
   }
 
-  // Envio para Google Drive via Apps Script
   if (!GOOGLE_SCRIPT_URL) {
     alert("Salvo com sucesso!");
     finalizeSalvar();
