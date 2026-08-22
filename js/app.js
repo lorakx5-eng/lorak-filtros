@@ -81,8 +81,6 @@ async function startCamera() {
     await webcam.play();
     
     // Força para que a imagem do vídeo NUNCA fique espelhada no visor
-    webcam.style.transform = "none";
-    webcam.style.webkitTransform = "none";
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
