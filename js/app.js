@@ -5,7 +5,7 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let captureMode = 'foto';
 let capturedBlob = null;
-let currentCameraMode = 'user'; // 'user' para frontal, 'environment' para traseira
+let currentCameraMode = 'user';
 
 const TARGET_WIDTH = 1080;
 const TARGET_HEIGHT = 1920;
@@ -30,11 +30,10 @@ const btnCapture = document.getElementById('btn-capture');
 const btnRefazer = document.getElementById('btn-refazer');
 const btnSalvar = document.getElementById('btn-salvar');
 
-// Objeto de imagem isolado para evitar contaminação no Canvas
 const frameImg = new Image();
 let frameLoaded = false;
 
-// 1. Carrega as configurações e a moldura como Blob seguro
+// 1. Carrega Configurações do Evento
 async function loadConfig() {
   try {
     const response = await fetch('eventos/lianamaria-1-ano.json');
@@ -43,24 +42,21 @@ async function loadConfig() {
     const frameUrl = currentConfig.frame || "assets/molduras/lianamaria.png";
     GOOGLE_SCRIPT_URL = currentConfig.driveUploadUrl || "";
 
-    // Converte a imagem da moldura para Blob para garantir compatibilidade no Canvas sem erros de CORS
     const imgRes = await fetch(frameUrl);
     const imgBlob = await imgRes.blob();
     const objectURL = URL.createObjectURL(imgBlob);
 
     moldura.src = objectURL;
     
-    frameImg.onload = () => {
-      frameLoaded = true;
-    };
+    frameImg.onload = () => { frameLoaded = true; };
     frameImg.src = objectURL;
 
   } catch (e) {
-    console.error("Erro ao carregar o JSON do evento ou a moldura:", e);
+    console.error("Erro ao carregar o evento ou moldura:", e);
   }
 }
 
-// 2. Inicializa a Câmera
+// 2. Inicialização da Câmera (Sem Espelhamento)
 async function startCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
@@ -80,15 +76,16 @@ async function startCamera() {
     webcam.srcObject = mediaStream;
     await webcam.play();
     
-    // Força para que a imagem do vídeo NUNCA fique espelhada no visor
+    // Garante que a imagem visual não fique espelhada
+    webcam.style.transform = "none";
+    webcam.style.webkitTransform = "none";
 
   } catch (err) {
     console.error("Erro ao acessar a câmera:", err);
-    alert("Não foi possível acessar a câmera. Verifique as permissões no seu navegador.");
+    alert("Não foi possível acessar a câmera. Verifique as permissões.");
   }
 }
 
-// Alternância entre Foto e Vídeo
 btnModeFoto.addEventListener('click', () => {
   captureMode = 'foto';
   btnModeFoto.classList.add('active');
@@ -101,13 +98,11 @@ btnModeVideo.addEventListener('click', () => {
   btnModeFoto.classList.remove('active');
 });
 
-// Troca de Câmera Frontal / Traseira
 btnSwitchCamera.addEventListener('click', () => {
   currentCameraMode = currentCameraMode === 'user' ? 'environment' : 'user';
   startCamera();
 });
 
-// Ação do Botão de Captura
 btnCapture.addEventListener('click', () => {
   if (captureMode === 'foto') {
     takePhoto();
@@ -120,7 +115,7 @@ btnCapture.addEventListener('click', () => {
   }
 });
 
-// Desenha o vídeo da câmera e a moldura no Canvas SEM ESPELHAR
+// Renderização Câmera + Moldura no Canvas
 function drawFrameToContext(ctx, width, height) {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
@@ -146,14 +141,11 @@ function drawFrameToContext(ctx, width, height) {
   }
 
   ctx.save();
-
-  // Desenha o vídeo diretamente sem aplicar rotação ou escala negativa
   if (webcam.readyState >= 2) {
     ctx.drawImage(webcam, drawX, drawY, drawWidth, drawHeight);
   }
   ctx.restore();
 
-  // Desenha a Moldura sobreposta
   if (frameLoaded) {
     ctx.drawImage(frameImg, 0, 0, width, height);
   } else if (moldura.complete && moldura.naturalWidth > 0) {
@@ -161,7 +153,6 @@ function drawFrameToContext(ctx, width, height) {
   }
 }
 
-// Captura de Foto
 function takePhoto() {
   const canvas = document.createElement('canvas');
   canvas.width = TARGET_WIDTH;
@@ -171,19 +162,14 @@ function takePhoto() {
   drawFrameToContext(ctx, TARGET_WIDTH, TARGET_HEIGHT);
 
   canvas.toBlob((blob) => {
-    if (!blob) {
-      alert("Erro ao gerar a imagem.");
-      return;
-    }
+    if (!blob) return;
     capturedBlob = blob;
-    const url = URL.createObjectURL(blob);
-    previewImg.src = url;
+    previewImg.src = URL.createObjectURL(blob);
     previewImg.classList.remove('hidden');
     showPreviewControls();
   }, 'image/png', 0.95);
 }
 
-// Gravação de Vídeo
 function startRecording() {
   recordedChunks = [];
   recordingStatus.classList.remove('hidden');
@@ -215,12 +201,9 @@ function startRecording() {
     canvasStream.addTrack(audioTracks[0]);
   }
 
-  let options = { mimeType: 'video/webm;codecs=vp8' };
+  let options = { mimeType: 'video/mp4' };
   if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = { mimeType: 'video/mp4' };
-  }
-  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = {};
+    options = { mimeType: 'video/webm;codecs=vp8' };
   }
 
   try {
@@ -230,9 +213,7 @@ function startRecording() {
   }
 
   mediaRecorder.ondataavailable = (e) => {
-    if (e.data.size > 0) {
-      recordedChunks.push(e.data);
-    }
+    if (e.data.size > 0) recordedChunks.push(e.data);
   };
 
   mediaRecorder.onstop = processVideo;
@@ -240,12 +221,8 @@ function startRecording() {
 }
 
 function stopRecording() {
-  if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
-  }
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
-  }
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   recordingStatus.classList.add('hidden');
   btnCapture.classList.remove('recording');
   btnSwitchCamera.classList.remove('hidden');
@@ -270,56 +247,59 @@ function showPreviewControls() {
 btnRefazer.addEventListener('click', () => {
   previewImg.classList.add('hidden');
   previewVideo.classList.add('hidden');
-  
   webcam.classList.remove('hidden');
   moldura.classList.remove('hidden');
   btnSwitchCamera.classList.remove('hidden');
-  
   controlsPreview.classList.add('hidden');
   controlsCamera.classList.remove('hidden');
   capturedBlob = null;
 });
 
-// Botão "Baixar": Salva na Galeria (iOS/Android) e Envia para o Google Drive
+// Salvamento na Galeria (iOS + Android) e envio ao Google Drive
 btnSalvar.addEventListener('click', async () => {
   if (!capturedBlob) return;
 
-  btnSalvar.innerText = "Baixando...";
+  btnSalvar.innerText = "Salvando...";
   btnSalvar.disabled = true;
 
   const isFoto = captureMode === 'foto';
   const type = isFoto ? 'foto' : 'video';
   const extension = isFoto ? 'png' : (capturedBlob.type.includes('mp4') ? 'mp4' : 'webm');
-  const fileName = `lorak_${type}_${Date.now()}.${extension}`;
+  const fileName = `cabine_${type}_${Date.now()}.${extension}`;
 
-  // 1. Download/Salvar na Galeria
-  try {
-    const file = new File([capturedBlob], fileName, { 
-      type: capturedBlob.type || (isFoto ? 'image/png' : 'video/mp4') 
-    });
+  const fileToSave = new File([capturedBlob], fileName, { 
+    type: capturedBlob.type || (isFoto ? 'image/png' : 'video/mp4') 
+  });
 
-    // Se o dispositivo for iOS (Safari) ou suporte Web Share com arquivos, abre o menu nativo "Salvar Imagem/Vídeo"
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+  let savedLocally = false;
+
+  // Usa Web Share API para o iOS salvar diretamente em Fotos / Galeria
+  if (navigator.canShare && navigator.canShare({ files: [fileToSave] })) {
+    try {
       await navigator.share({
-        files: [file],
-        title: 'Baixar Mídia',
-        text: 'Salvar na Galeria'
+        files: [fileToSave],
+        title: 'Salvar Mídia',
+        text: 'Sua foto/vídeo com a moldura!'
       });
-    } else {
-      // Fallback padrão para Android Chrome / Navegadores Desktop
-      const downloadLink = document.createElement('a');
-      downloadLink.href = URL.createObjectURL(capturedBlob);
-      downloadLink.download = fileName;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
+      savedLocally = true;
+    } catch (shareErr) {
+      console.log("Compartilhamento cancelado:", shareErr);
     }
-  } catch (err) {
-    console.log("Download cancelado ou concluído via Web Share:", err);
   }
 
-  // 2. Envio em Segundo Plano para o Google Drive
+  // Fallback para download padrão
+  if (!savedLocally) {
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(capturedBlob);
+    downloadLink.download = fileName;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  }
+
+  // Envio para Google Drive via Apps Script
   if (!GOOGLE_SCRIPT_URL) {
+    alert("Salvo com sucesso!");
     finalizeSalvar();
     return;
   }
@@ -327,27 +307,20 @@ btnSalvar.addEventListener('click', async () => {
   const reader = new FileReader();
   reader.readAsDataURL(capturedBlob);
   reader.onloadend = async () => {
-    const base64Data = reader.result;
-
     try {
       await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
-          base64: base64Data,
+          base64: reader.result,
           filename: fileName,
           mimeType: capturedBlob.type || (isFoto ? 'image/png' : 'video/webm')
         })
       });
-      
-      alert("Sucesso! Mídia salva no seu dispositivo e enviada ao Google Drive.");
-
+      alert("Sucesso! Mídia salva e enviada ao Google Drive.");
     } catch (err) {
       console.error("Erro ao enviar para o Drive:", err);
-      alert("Arquivo baixado, mas ocorreu um erro ao salvar no Google Drive.");
     } finally {
       finalizeSalvar();
     }
@@ -355,7 +328,7 @@ btnSalvar.addEventListener('click', async () => {
 });
 
 function finalizeSalvar() {
-  btnSalvar.innerText = "Baixar";
+  btnSalvar.innerText = "Salvar";
   btnSalvar.disabled = false;
   btnRefazer.click();
 }
