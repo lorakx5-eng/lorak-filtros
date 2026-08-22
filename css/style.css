@@ -1,4 +1,4 @@
-/* Reset Global e Otimizações Mobile */
+/* Reset e Ajustes de Tela Cheia para iOS e Android */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6,7 +6,7 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 html, body {
@@ -17,7 +17,7 @@ html, body {
   color: #ffffff;
 }
 
-/* Container do App Fullscreen */
+/* Container Principal adaptado às áreas seguras dos celulares */
 .app-container {
   position: relative;
   width: 100vw;
@@ -28,10 +28,9 @@ html, body {
   justify-content: space-between;
   align-items: center;
   overflow: hidden;
-  background-color: #000000;
 }
 
-/* Wrapper do Feed da Câmera */
+/* Invólucro da Câmera e Moldura */
 .camera-wrapper {
   position: absolute;
   top: 0;
@@ -45,7 +44,7 @@ html, body {
   background-color: #000000;
 }
 
-/* Vídeo da Câmera - Sem Espelhamento (Android & iOS) */
+/* Vídeo da Câmera: Impede o espelhamento no iOS Safari e Android */
 #webcam {
   width: 100%;
   height: 100%;
@@ -66,7 +65,7 @@ html, body {
   z-index: 2;
 }
 
-/* Pré-visualizações */
+/* Previews da Foto e do Vídeo */
 #preview-img, #preview-video {
   position: absolute;
   top: 0;
@@ -76,17 +75,15 @@ html, body {
   object-fit: cover;
   z-index: 3;
   background-color: #000000;
-  transform: none !important;
-  -webkit-transform: none !important;
 }
 
-/* Botão de Trocar Câmera estilo Instagram Stories */
+/* Botão de Trocar Câmera (Estilo Instagram Stories) */
 .btn-icon-stories {
   position: absolute;
   top: calc(16px + env(safe-area-inset-top, 0px));
   right: 18px;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(12px);
@@ -98,19 +95,17 @@ html, body {
   z-index: 10;
   cursor: pointer;
   color: #ffffff;
-  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .btn-icon-stories:active {
-  transform: scale(0.88) rotate(180deg);
-  background: rgba(0, 0, 0, 0.75);
+  transform: scale(0.9);
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .btn-icon-stories svg {
-  width: 24px;
-  height: 24px;
-  stroke: #ffffff;
+  width: 26px;
+  height: 26px;
 }
 
 /* Status de Gravação REC */
@@ -119,19 +114,18 @@ html, body {
   top: calc(20px + env(safe-area-inset-top, 0px));
   left: 18px;
   z-index: 10;
-  background: rgba(220, 38, 38, 0.88);
+  background: rgba(220, 38, 38, 0.85);
   color: #ffffff;
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   gap: 8px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .rec-dot {
@@ -139,15 +133,15 @@ html, body {
   height: 10px;
   background-color: #ffffff;
   border-radius: 50%;
-  animation: pulse-rec 1s infinite alternate ease-in-out;
+  animation: pulse-rec 1s infinite alternate;
 }
 
 @keyframes pulse-rec {
   0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0.35; transform: scale(0.75); }
+  100% { opacity: 0.3; transform: scale(0.8); }
 }
 
-/* Painel de Controles Inferiores */
+/* Painel de Controles Inferior */
 .controls {
   position: absolute;
   bottom: 0;
@@ -159,15 +153,14 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.3) 70%, rgba(0, 0, 0, 0) 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
-/* Botão do Obturador (Shutter) estilo Stories */
+/* Botão Obturador Estilo Instagram */
 .shutter-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 4px;
 }
 
 .btn-shutter {
@@ -175,32 +168,30 @@ html, body {
   height: 78px;
   border-radius: 50%;
   border: 4px solid #ffffff;
-  background-color: rgba(255, 255, 255, 0.35);
+  background-color: rgba(255, 255, 255, 0.3);
   outline: none;
   cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s ease, border-radius 0.2s ease;
-  box-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, background-color 0.2s ease, border-radius 0.2s ease;
 }
 
 .btn-shutter:active {
   transform: scale(0.92);
-  background-color: rgba(255, 255, 255, 0.6);
 }
 
 .btn-shutter.recording {
-  background-color: #e11d48;
+  background-color: #dc2626;
   border-color: #ffffff;
   border-radius: 16px;
   transform: scale(0.75);
 }
 
-/* Seletor de Modo FOTO / VÍDEO */
+/* Seletor de Modos (FOTO / VÍDEO) */
 .mode-selector {
   display: flex;
-  gap: 18px;
-  background: rgba(0, 0, 0, 0.45);
+  gap: 20px;
+  background: rgba(0, 0, 0, 0.4);
   padding: 6px 18px;
-  border-radius: 22px;
+  border-radius: 20px;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -223,20 +214,19 @@ html, body {
   border-bottom: 2px solid #ffffff;
 }
 
-/* Ações Preview (Refazer / Salvar) */
+/* Botões da Prévia */
 #controls-preview {
   flex-direction: row;
   justify-content: space-between;
   gap: 16px;
-  padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
 }
 
 .btn-primary, .btn-secondary {
   flex: 1;
   height: 52px;
   border-radius: 26px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   border: none;
   cursor: pointer;
   transition: transform 0.15s ease, opacity 0.2s ease;
@@ -245,11 +235,11 @@ html, body {
 .btn-primary {
   background-color: #007aff;
   color: #ffffff;
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.35);
 }
 
 .btn-secondary {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.22);
   color: #ffffff;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -262,12 +252,12 @@ html, body {
 }
 
 .btn-primary:disabled {
-  background-color: #4b5563;
-  color: #9ca3af;
+  background-color: #555555;
   cursor: not-allowed;
   box-shadow: none;
 }
 
+/* Classe utilitária */
 .hidden {
   display: none !important;
 }
